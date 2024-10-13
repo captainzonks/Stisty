@@ -31,7 +31,6 @@ use crate::functions::stats_math::{covariance, deviation, pearson_r_from_t_stati
 use crate::logging::setup_logger;
 use crate::data_types::data_array::DataArray;
 use crate::data_types::relationship::Relationship;
-use crate::error_types::CSVError;
 use crate::functions::convert::Convert;
 
 // fn run_menudo_test() {
@@ -193,11 +192,11 @@ fn run_spotify_streaming() -> Result<()> {
     let spotify_csv = import_csv_data(Path::new("./csv-files/spotify-streaming.csv"), None, None);
     match spotify_csv {
         Ok(ref data) => {
-            let total_playlists_count = data.get_col::<i64>(6, None).map_err(|e| From::from(e));
-            let total_streams_count = data.get_col::<i64>(8, None).map_err(|e| From::from(e));
+            let total_playlists_count = data.get_col::<i64>(6, None);
+            let total_streams_count = data.get_col::<i64>(8, None);
 
-            let playlists_data_array = DataArray::new(String::from("Total Playlists Count"), total_playlists_count?, None);
-            let streams_data_array = DataArray::new(String::from("Total Streams Count"), total_streams_count?, None);
+            let playlists_data_array = DataArray::new(String::from("Total Playlists Count"), total_playlists_count, None);
+            let streams_data_array = DataArray::new(String::from("Total Streams Count"), total_streams_count, None);
             let playlists_streams_relationship = Relationship::new(String::from("Total Playlist Count vs Total Stream Count"), &playlists_data_array, &streams_data_array, None);
 
             playlists_data_array.print_data();
