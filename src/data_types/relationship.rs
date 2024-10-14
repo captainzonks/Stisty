@@ -1,6 +1,8 @@
 use std::iter::Sum;
+use anyhow::Error;
 use log::info;
 use crate::data_types::data_array::DataArray;
+use crate::error_types::CSVError;
 use crate::functions::convert::Convert;
 use crate::logging;
 
@@ -19,7 +21,7 @@ pub struct Relationship {
 }
 
 impl Relationship {
-    pub fn new(name: String, data_x: &DataArray, data_y: &DataArray, degrees_of_freedom: Option<i32>) -> Relationship {
+    pub fn new(name: String, data_x: &DataArray, data_y: &DataArray, degrees_of_freedom: Option<i32>) -> Result<Relationship, Error> {
         let mut new_relationship: Relationship = Relationship::default();
         new_relationship.degrees_of_freedom = Some(degrees_of_freedom.unwrap_or(2));
 
@@ -74,7 +76,11 @@ impl Relationship {
         new_relationship.slope = Option::from(new_relationship.covariance.unwrap() / data_x.variance.unwrap());
         new_relationship.intercept = Option::from(data_y.mean.unwrap() - new_relationship.slope.unwrap() * data_x.mean.unwrap());
 
-        new_relationship
+        Ok(new_relationship)
+    }
+
+    pub fn get_y_hat(&self, x_value: f64) -> f64 {
+        self.slope.unwrap() * x_value + self.intercept.unwrap()
     }
 
     pub fn print_relationship(&self) {

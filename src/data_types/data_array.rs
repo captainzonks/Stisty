@@ -1,8 +1,8 @@
-use log::info;
+use log::{debug, info};
 use crate::functions::convert::{convert_slice_to_f64, Convert};
 use crate::logging;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct DataArray {
     pub name: String,
     pub data: Vec<f64>,
@@ -16,8 +16,9 @@ pub struct DataArray {
 }
 
 impl DataArray {
-    pub fn new<T: Copy + std::fmt::Debug>(name: String, data: Vec<T>, pop: Option<bool>) -> DataArray
+    pub fn new<T>(name: String, data: Vec<T>, pop: Option<bool>) -> DataArray
     where
+        T: Copy + std::fmt::Debug,
         f64: Convert<T>,
     {
         let mut new_data_array = DataArray::default();
@@ -93,13 +94,13 @@ impl DataArray {
 
     pub fn print_data(&self) {
         info!("{}", logging::format_title(&*self.name));
-        // info!("Data: {:?}", &self.data);
+        // debug!("Data: {:?}", &self.data);
         info!("Population....................{}", self.population.unwrap_or_default());
         info!("Mean..........................{}", self.mean.unwrap_or_default());
         info!("Sum of Squares................{}", self.sum_of_squares.unwrap_or_default());
-        // info!("Deviations: {:?}", self.deviations.clone().unwrap_or_default());
+        // debug!("Deviations: {:?}", self.deviations.clone().unwrap_or_default());
         info!("Variance......................{}", self.variance.unwrap_or_default());
         info!("Standard deviation............{}", self.standard_deviation.unwrap_or_default());
-        // info!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
+        // debug!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
     }
 }
