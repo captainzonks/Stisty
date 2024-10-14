@@ -28,18 +28,11 @@ pub fn import_csv_data(file_path: &Path, has_headers: Option<bool>, delimiter: O
     let mut column_count: usize = 0;
 
     for result in reader.records() {
-        match result {
-            Ok(string_record) => {
-                sample_data.row_length = string_record.len();
-                column_count += 1;
-                for string in string_record.iter() {
-                    sample_data.data.push(string.to_string().trim().to_string()); // trim in case of whitespace
-                }
-            }
-            Err(err) => {
-                error!("{}", err);
-                return Err(anyhow!("{}", err));
-            }
+        let string_record = result?;
+        sample_data.row_length = string_record.len();
+        column_count += 1;
+        for string in string_record.iter() {
+            sample_data.data.push(string.to_string().trim().to_string()); // trim in case of whitespace
         }
     }
     sample_data.column_count = column_count;
@@ -64,41 +57,9 @@ impl CSVData {
         let one: usize = if one_based_index.unwrap_or_default() { 1 } else { 0 };
         // row_len * row + column (row major)
         let extracted_string = &self.data[self.row_length * (row - one) + (column - one)];
-        extracted_string.parse::<T>()?.clone()
-        // match extracted_string.parse::<T>().clone() {
-        //     Ok(val) => Ok(val),
-        //     Err(err) => {
-        //         error!("datum \"{}\" could not be parsed into {} type", extracted_string, type_name::<T>());
-        //         Err(err)
-        //     }
-        // }
-        // if index < self.data.len() {
-        //     let extracted_string = &self.data[self.row_length * (row - one) + (column - one)];
-        //     match extracted_string.parse::<T>().clone() {
-        //         Ok(val) => Ok(val),
-        //         Err(_) => Err(format!("Could not convert {} to number", extracted_string))
-        //     }
-        //
-        //     // .unwrap_or_else(|err| {
-        //     // error!("Error parsing {} from row {} and column {}; Error: {:?}",
-        //     //     extracted_string,
-        //     //     row,
-        //     //     column,
-        //     //     err
-        //     // );
-        //     // panic!(
-        //     //     "Error parsing {},\nError: {:?}",
-        //     //     extracted_string,
-        //     //     err
-        //     // )
-        // } else {
-        //     Err()
-        // }
-
-        // converted
-        // } else {
-        //     panic!("Error: index {} is greater than data's vector length ({})", index, self.data.len());
-        // }
+        T::from_str(extracted_string)
+            .map_err(|error| CSVErrorKind::Generic { source: error })
+            .map_err(|error| CSVError { row, column, value: String::from(extracted_string), kind: error })
     }
 
     /// Retrieves a column of data from CSVData's data vector.
@@ -113,12 +74,9 @@ impl CSVData {
         let mut col: Vec<T> = Vec::with_capacity(self.data.len());
 
         for i in one..self.column_count + one {
-            if let datum = self.get_datum::<T>(i, column, one_based_index) {
-                match datum {
-                    Ok(val) => col.push(val),
-                    Err(ref err) => { datum?; }
-                }
-                // col.push(datum?);
+            if let datum = self.get_datum::<T>(i, column, one_based_index)?
+            {
+                col.push(datum)
             }
         }
         Ok(col)
