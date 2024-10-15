@@ -1,0 +1,238 @@
+use std::error::Error;
+use std::fmt::Debug;
+use std::path::Path;
+use std::process;
+use std::str::FromStr;
+use log::{error, info};
+use crate::data_types::data_array::DataArray;
+use crate::data_types::relationship::Relationship;
+use crate::error_types::CSVError;
+use crate::functions::convert::Convert;
+use crate::functions::csv::import_csv_data;
+use crate::functions::stats_math;
+use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
+use crate::functions::stats::get_data_stats;
+
+pub fn run_menudo_test() -> Result<(), Box<dyn Error>> {
+    let menudo_file_path = Path::new("./csv-files/menudo.csv");
+    let menudo_csv_data = import_csv_data(menudo_file_path, None, None)?;
+
+    let tenure_data_array = get_data_stats::<i32>(&menudo_csv_data,
+                                                  String::from("Member Tenures"),
+                                                  5,
+                                                  false,
+                                                  true)?;
+    let ending_age_data_array = get_data_stats::<i32>(&menudo_csv_data,
+                                                      String::from("Member Ending Ages"),
+                                                      4,
+                                                      false,
+                                                      true)?;
+
+    let tenure_vs_ending_age_relationship = Relationship::new(String::from("Member Tenure vs Ending Ages"),
+                                                              &tenure_data_array,
+                                                              &ending_age_data_array,
+                                                              None)?;
+
+    tenure_data_array.print_data();
+    ending_age_data_array.print_data();
+    tenure_vs_ending_age_relationship.print_relationship();
+    Ok(())
+}
+
+pub fn run_months_ice_cream() -> Result<(), Box<dyn Error>> {
+    let dating_ice_cream_file_path = Path::new("./csv-files/dating-ice-cream.csv");
+    let dating_ice_cream_csv_data = import_csv_data(dating_ice_cream_file_path, None, None)?;
+
+    let relationship_months_data_array = get_data_stats::<i32>(&dating_ice_cream_csv_data,
+                                                               String::from("Length of Relationship in Months"),
+                                                               1,
+                                                               false,
+                                                               false)?;
+    let pints_of_ice_cream_data_array = get_data_stats::<i32>(&dating_ice_cream_csv_data,
+                                                              String::from("Pints of Ice Cream Eaten"),
+                                                              2,
+                                                              false,
+                                                              false)?;
+
+    let relationship_vs_ice_cream_relationship = Relationship::new(String::from("Length of Relationship vs Pints of Ice Cream Eaten"),
+                                                                   &relationship_months_data_array,
+                                                                   &pints_of_ice_cream_data_array,
+                                                                   None)?;
+
+    relationship_months_data_array.print_data();
+    pints_of_ice_cream_data_array.print_data();
+    relationship_vs_ice_cream_relationship.print_relationship();
+    Ok(())
+}
+
+pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
+    let coffee_sleep_donuts = import_csv_data("./csv-files/coffee-area-sleep-donuts.csv".as_ref(), None, None);
+
+    match coffee_sleep_donuts {
+        Ok(mut data) => {
+            info!("Imported CSV successfully!");
+            // let coffee = data.get_col::<i32>(1, None);
+            let sleep = data.get_col::<i32>(3, None)?;
+            let donuts = data.get_col::<i32>(4, None)?;
+
+            // let coffee_data_array = DataArray::new(coffee, None);
+            let sleep_data_array = DataArray::new(String::from("Hours of Sleep"), sleep, None);
+            let donuts_data_array = DataArray::new(String::from("Donuts Eaten"), donuts, None);
+            let pearson_r = pearson_r_method_1(&sleep_data_array.data, &donuts_data_array.data, None);
+
+            let zipped = sleep_data_array.data.iter().zip(donuts_data_array.data.iter());
+
+            let mut growing_products = 0.0;
+            for (datum_x, datum_y) in zipped {
+                growing_products += ((f64::convert(*datum_x) - sleep_data_array.mean.unwrap()) / sleep_data_array.standard_deviation.unwrap()) * ((f64::convert(*datum_y) - donuts_data_array.mean.unwrap()) / donuts_data_array.standard_deviation.unwrap());
+            }
+
+            // info!("====COFFEE====");
+            // info!("{:#?}\n", coffee_data_array);
+            info!("====SLEEP=====");
+            info!("{:#?}\n", sleep_data_array);
+            info!("====DONUTS====");
+            info!("{:#?}\n", donuts_data_array);
+            info!("Covariance: {}", covariance(&sleep_data_array.data, &donuts_data_array.data));
+            info!("Product of SDs: {}", sleep_data_array.standard_deviation.unwrap() * donuts_data_array.standard_deviation.unwrap());
+            info!("Pearson r: {}", pearson_r);
+            info!("t value: {}", t_statistic_from_r(pearson_r, sleep_data_array.data.len()));
+            info!("products of z scores: {}", growing_products);
+            Ok(())
+        }
+        Err(_) => {
+            error!("Imported CSV failed!");
+            process::exit(1);
+        }
+    }
+}
+
+pub fn run_spotify_streaming() -> Result<(), Box<dyn Error>> {
+    let spotify_file_path = Path::new("./csv-files/spotify-streaming.csv");
+    let spotify_csv_data = import_csv_data(spotify_file_path, None, None)?;
+    let spotify_total_playlists_data_array = get_data_stats::<i64>(&spotify_csv_data,
+                                                                   String::from("Total Playlists Count"),
+                                                                   6,
+                                                                   false,
+                                                                   false)?;
+    spotify_total_playlists_data_array.print_data();
+    let spotify_total_streams_data_array = get_data_stats::<i64>(&spotify_csv_data,
+                                                                 String::from("Total Playlists Count"),
+                                                                 8,
+                                                                 false,
+                                                                 false)?;
+    spotify_total_streams_data_array.print_data();
+    let spotify_playlists_vs_streams_relationship = Relationship::new(String::from("Spotify Playlists vs Streams"),
+                                                                      &spotify_total_playlists_data_array,
+                                                                      &spotify_total_streams_data_array,
+                                                                      None)?;
+    spotify_playlists_vs_streams_relationship.print_relationship();
+    Ok(())
+}
+
+pub fn run_stress_levels() -> Result<(), Box<dyn Error>> {
+    let candy_stress_vacation_file_path = Path::new("./csv-files/candy-stress-vacation.csv");
+    let candy_stress_vacation_csv_data = import_csv_data(candy_stress_vacation_file_path, None, None)?;
+
+    let candy_bars_eaten_data_array = get_data_stats::<i32>(&candy_stress_vacation_csv_data,
+                                                            String::from("Total Candy Bars Eaten"),
+                                                            1,
+                                                            false,
+                                                            false)?;
+    let stress_level_data_array = get_data_stats::<i32>(&candy_stress_vacation_csv_data,
+                                                        String::from("Stress Level"),
+                                                        2,
+                                                        false,
+                                                        false)?;
+    let days_since_vacation_data_array = get_data_stats::<i32>(&candy_stress_vacation_csv_data,
+                                                               String::from("Days Since Last Vacation"),
+                                                               3,
+                                                               false,
+                                                               false)?;
+    let weeks_since_vacation_data_array = get_data_stats::<i32>(&candy_stress_vacation_csv_data,
+                                                                String::from("Weeks Since Last Vacation"),
+                                                                4,
+                                                                false,
+                                                                false)?;
+    let fortnights_since_vacation_data_array = get_data_stats::<f32>(&candy_stress_vacation_csv_data,
+                                                                     String::from("Fortnights Since Last Vacation"),
+                                                                     5,
+                                                                     false,
+                                                                     false)?;
+
+    let candy_bars_vs_stress_relationship = Relationship::new(String::from("Candy Bars vs Stress Relationship"),
+                                                              &candy_bars_eaten_data_array,
+                                                              &stress_level_data_array,
+                                                              None)?;
+
+    let stress_vs_candy_bars_relationship = Relationship::new(String::from("Stress vs Candy Bars Relationship"),
+                                                              &stress_level_data_array,
+                                                              &candy_bars_eaten_data_array,
+                                                              None)?;
+
+    let weeks_vs_stress_relationship = Relationship::new(String::from("Weeks Since Last Vacation vs Stress Relationship"),
+                                                         &weeks_since_vacation_data_array,
+                                                         &stress_level_data_array,
+                                                         None)?;
+
+
+    candy_bars_eaten_data_array.print_data();
+    stress_level_data_array.print_data();
+    days_since_vacation_data_array.print_data();
+    weeks_since_vacation_data_array.print_data();
+    fortnights_since_vacation_data_array.print_data();
+    candy_bars_vs_stress_relationship.print_relationship();
+    stress_vs_candy_bars_relationship.print_relationship();
+    weeks_vs_stress_relationship.print_relationship();
+
+    info!("Stress Level after 8 Weeks Without Vacation: {}", weeks_vs_stress_relationship.get_y_hat(8.0));
+    info!("Candy Bars eaten with a Stress Level of 12: {}", stress_vs_candy_bars_relationship.get_y_hat(12.0));
+    Ok(())
+}
+
+pub fn run_student_boredom() -> Result<(), Box<dyn Error>> {
+    let student_boredom_file_path = Path::new("./csv-files/student-boredom.csv");
+    let student_boredom_csv_data = import_csv_data(student_boredom_file_path, None, None)?;
+
+    let minutes_backpack_data_array = get_data_stats::<i32>(&student_boredom_csv_data,
+                                                            String::from("Minutes Wearing Backpack"),
+                                                            1,
+                                                            false,
+                                                            false)?;
+    let lectures_attended_data_array = get_data_stats::<i32>(&student_boredom_csv_data,
+                                                             String::from("Lectures Attended"),
+                                                             2,
+                                                             false,
+                                                             false)?;
+
+    let student_boredom_data_array = get_data_stats::<i32>(&student_boredom_csv_data,
+                                                           String::from("Student Boredom Level"),
+                                                           3,
+                                                           false,
+                                                           false)?;
+
+    let lectures_boredom_relationship = Relationship::new(String::from("Lectures Attended vs Boredom Relationship"),
+                                                          &lectures_attended_data_array,
+                                                          &student_boredom_data_array,
+                                                          None)?;
+
+    let backpack_boredom_relationship = Relationship::new(String::from("Backpack Minutes vs Boredom Relationship"),
+                                                          &minutes_backpack_data_array,
+                                                          &student_boredom_data_array,
+                                                          None)?;
+
+    let backpack_lectures_relationship = Relationship::new(String::from("Backpack vs Lectures Attended Relationship"),
+                                                           &minutes_backpack_data_array,
+                                                           &lectures_attended_data_array,
+                                                           None)?;
+
+    minutes_backpack_data_array.print_data();
+    lectures_attended_data_array.print_data();
+    student_boredom_data_array.print_data();
+    lectures_boredom_relationship.print_relationship();
+    backpack_boredom_relationship.print_relationship();
+    backpack_lectures_relationship.print_relationship();
+
+
+    Ok(())
+}
