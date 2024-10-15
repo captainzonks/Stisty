@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::string::ParseError;
 use log::{error, info};
 use anyhow::{anyhow, Context, Result};
+use crate::error_types::{CSVError, CSVErrorKind};
 
 pub fn import_csv_data(file_path: &Path, has_headers: Option<bool>, delimiter: Option<u8>) -> Result<CSVData, anyhow::Error> {
     let mut reader_builder = csv::ReaderBuilder::new();
@@ -49,11 +50,9 @@ impl CSVData {
     /// Retrieves a single datum from SampleData's vector as if it were a 2D array.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
-    pub fn get_datum<T>(&self, row: usize, column: usize, one_based_index: Option<bool>) -> T
+    pub fn get_datum<T>(&self, row: usize, column: usize, one_based_index: Option<bool>) -> Result<T, CSVError<T>>
     where
         T: FromStr + Clone + Debug,
-        <T as FromStr>::Err: Debug,
-        <T as FromStr>::Err: Clone,
     {
         let one: usize = if one_based_index.unwrap_or_default() { 1 } else { 0 };
         // row_len * row + column (row major)
@@ -66,11 +65,9 @@ impl CSVData {
     /// Retrieves a column of data from CSVData's data vector.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
-    pub fn get_col<T>(&self, column: usize, one_based_index: Option<bool>) -> Vec<T>
+    pub fn get_col<T>(&self, column: usize, one_based_index: Option<bool>) -> Result<Vec<T>, CSVError<T>>
     where
         T: FromStr + Clone + Debug,
-        <T as FromStr>::Err: Debug,
-        <T as FromStr>::Err: Clone,
     {
         info!("Retrieving column {} from CSV using {}-based indexing", column, if one_based_index.unwrap_or_default() { 1 } else { 0 });
         let one: usize = if one_based_index.unwrap_or_default() { 1 } else { 0 };
@@ -82,6 +79,6 @@ impl CSVData {
                 col.push(datum)
             }
         }
-        col
+        Ok(col)
     }
 }

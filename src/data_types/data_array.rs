@@ -95,6 +95,7 @@ impl DataArray {
     pub fn print_data(&self) {
         info!("{}", logging::format_title(&*self.name));
         // debug!("Data: {:?}", &self.data);
+        info!("N.............................{}", self.data.len());
         info!("Population....................{}", self.population.unwrap_or_default());
         info!("Mean..........................{}", self.mean.unwrap_or_default());
         info!("Sum of Squares................{}", self.sum_of_squares.unwrap_or_default());

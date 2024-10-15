@@ -18,6 +18,8 @@ pub struct Relationship {
     pub t_statistic: Option<f64>,
     pub slope: Option<f64>,
     pub intercept: Option<f64>,
+    pub beta_x: Option<f64>,
+    pub beta_y: Option<f64>,
 }
 
 impl Relationship {

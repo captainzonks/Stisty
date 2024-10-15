@@ -29,22 +29,14 @@ use functions::{stats_math, csv::import_csv_data};
 use std::process;
 use std::str::FromStr;
 use log::{error, info};
-use crate::logging::setup_logger;
+use crate::logging::{format_title, setup_logger};
 use crate::data_types::data_array::DataArray;
 use crate::data_types::relationship::Relationship;
+use crate::error_types::CSVError;
 use crate::functions::convert::Convert;
 use crate::functions::csv::CSVData;
-use crate::tests::tests::{run_spotify_streaming, run_stress_levels};
+use crate::tests::tests::{run_menudo_test, run_months_ice_cream, run_spotify_streaming, run_stress_levels, run_student_boredom};
 
-fn get_data_stats<T>(csv_data: &CSVData, data_name: String, column: usize, one_based_index: bool, population: bool) -> Result<DataArray, CSVError<T>>
-where
-    T: FromStr + Clone + Copy + Debug + 'static,
-    <T as FromStr>::Err: Error + Send + Sync + 'static,
-    f64: Convert<T>,
-{
-    Ok(DataArray::new(data_name, csv_data.get_col::<T>(column, Some(one_based_index))
-        .map_err(|error| <CSVError<T>>::from(error))?, Some(population)))
-}
 
 fn run_ratatui(mut terminal: DefaultTerminal) -> io::Result<()> {
     loop {
@@ -65,8 +57,8 @@ fn run_ratatui(mut terminal: DefaultTerminal) -> io::Result<()> {
 
 fn main() -> Result<()> {
     setup_logger().expect("Logging setup failed.");
-    info!("==============================STISTY==============================");
-    info!("==================================================================");
+    info!("{}", format_title(&*"Stisty"));
+    info!("{}", format_title(&*""));
 
     //////// ratatui ////////
     // let mut terminal = ratatui::init();
@@ -75,8 +67,11 @@ fn main() -> Result<()> {
     // ratatui::restore();
     // app_result
 
-    run_spotify_streaming().expect("Spotify test failed.");
-    run_stress_levels().expect("Stress levels test failed.");
+    // run_menudo_test().expect("Menudo test failed.");
+    // run_months_ice_cream().expect("Months ice cream test failed.");
+    // run_spotify_streaming().expect("Spotify test failed.");
+    // run_stress_levels().expect("Stress levels test failed.");
+    run_student_boredom().expect("Student boredom test failed.");
 
 
     info!("=================================================================");

@@ -3,6 +3,8 @@ const LOG_FILE_COUNT: u32 = 5;
 const FILE_PATH: &str = "./logs/stisty.log";
 const ARCHIVE_PATTERN: &str = "./logs/archive/stisty.{}.log";
 
+const FORMATTED_LINE_LENGTH: usize = 70;
+
 use log::{LevelFilter, SetLoggerError};
 use log4rs::{
     append::{
@@ -60,8 +62,8 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
 }
 
 pub fn format_title(title: &str) -> String {
-    let mut line_length = 50;
-    if title.len() < 50 {
+    let mut line_length = FORMATTED_LINE_LENGTH;
+    if title.len() < FORMATTED_LINE_LENGTH {
         line_length -= title.len();
     } else {
         return title.to_string();
