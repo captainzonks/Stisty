@@ -27,7 +27,7 @@ use std::io;
 use log::info;
 // use crate::graphing::graph_test;
 use crate::logging::{format_title, setup_logger};
-use crate::tests::tests::{run_soda_bathroom, run_menudo_test, run_months_ice_cream, run_spotify_streaming, run_stress_levels, run_student_boredom, run_rent_cockroaches, run_caffeine_sleep, run_halloween_candy, run_exam_2, run_superheroes};
+use crate::tests::tests::*;
 
 
 fn run_ratatui(mut terminal: DefaultTerminal) -> io::Result<()> {
@@ -67,9 +67,10 @@ fn main() -> Result<()> {
     // run_soda_bathroom().expect("Lab 7 failed");
     // run_rent_cockroaches().expect("Rent Cockroaches test failed");
     // run_caffeine_sleep().expect("Sleep caffeine test failed");
-    run_halloween_candy().expect("Halloween candy test failed");
-    // run_exam_2().expect("EXAM FAIL");
-    // run_superheroes().expect("superheroes failed");
+    // run_halloween_candy().expect("Halloween candy test failed");
+    // run_exam_2().expect("exam 2 failed");
+    // run_exam_2_followup().expect("exam 2 followup failed");
+    run_superheroes().expect("superheroes failed");
 
     info!("{}", format_title(&*""));
 

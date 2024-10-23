@@ -1,4 +1,4 @@
-use std::error::Error;
+use anyhow::{Error, Result};
 use std::fmt::Debug;
 use std::path::Path;
 use std::process;
@@ -14,8 +14,9 @@ use crate::functions::csv::import_csv_data;
 use crate::functions::stats_math;
 use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
 use crate::functions::stats::get_data_stats;
+// use crate::graphing::graph_test;
 
-pub fn run_menudo_test() -> Result<(), Box<dyn Error>> {
+pub fn run_menudo_test() -> Result<(), Error> {
     let menudo_file_path = Path::new("./csv-files/menudo.csv");
     let menudo_csv_data = import_csv_data(menudo_file_path, None, None)?;
 
@@ -41,7 +42,7 @@ pub fn run_menudo_test() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_months_ice_cream() -> Result<(), Box<dyn Error>> {
+pub fn run_months_ice_cream() -> Result<(), Error> {
     let dating_ice_cream_file_path = Path::new("./csv-files/dating-ice-cream.csv");
     let dating_ice_cream_csv_data = import_csv_data(dating_ice_cream_file_path, None, None)?;
 
@@ -67,7 +68,7 @@ pub fn run_months_ice_cream() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
+pub fn run_coffee_sleep_donuts() -> Result<(), Error> {
     let coffee_sleep_donuts = import_csv_data("./csv-files/coffee-area-sleep-donuts.csv".as_ref(), None, None);
 
     match coffee_sleep_donuts {
@@ -78,9 +79,9 @@ pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
             let donuts = data.get_col::<i32>(4, None)?;
 
             // let coffee_data_array = DataArray::new(coffee, None);
-            let sleep_data_array = DataArray::new(String::from("Hours of Sleep"), sleep, None);
-            let donuts_data_array = DataArray::new(String::from("Donuts Eaten"), donuts, None);
-            let pearson_r = pearson_r_method_1(&sleep_data_array.data, &donuts_data_array.data, None);
+            let sleep_data_array = DataArray::new(String::from("Hours of Sleep"), sleep, None)?;
+            let donuts_data_array = DataArray::new(String::from("Donuts Eaten"), donuts, None)?;
+            let pearson_r = pearson_r_method_1(&sleep_data_array.data, &donuts_data_array.data, None)?;
 
             let zipped = sleep_data_array.data.iter().zip(donuts_data_array.data.iter());
 
@@ -96,10 +97,10 @@ pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
             info!("{:#?}\n", sleep_data_array);
             info!("====DONUTS====");
             info!("{:#?}\n", donuts_data_array);
-            info!("Covariance: {}", covariance(&sleep_data_array.data, &donuts_data_array.data));
+            info!("Covariance: {}", covariance(&sleep_data_array.data, &donuts_data_array.data)?);
             info!("Product of SDs: {}", sleep_data_array.standard_deviation * donuts_data_array.standard_deviation);
             info!("Pearson r: {}", pearson_r);
-            info!("t value: {}", t_statistic_from_r(pearson_r, sleep_data_array.data.len()));
+            info!("t value: {}", t_statistic_from_r(pearson_r, sleep_data_array.data.len())?);
             info!("products of z scores: {}", growing_products);
             Ok(())
         }
@@ -110,7 +111,7 @@ pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
     }
 }
 
-pub fn run_spotify_streaming() -> Result<(), Box<dyn Error>> {
+pub fn run_spotify_streaming() -> Result<(), Error> {
     let spotify_file_path = Path::new("./csv-files/spotify-streaming.csv");
     let spotify_csv_data = import_csv_data(spotify_file_path, None, None)?;
     let spotify_total_playlists_data_array = get_data_stats::<i64>(&spotify_csv_data,
@@ -134,7 +135,7 @@ pub fn run_spotify_streaming() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_stress_levels() -> Result<(), Box<dyn Error>> {
+pub fn run_stress_levels() -> Result<(), Error> {
     let candy_stress_vacation_file_path = Path::new("./csv-files/candy-stress-vacation.csv");
     let candy_stress_vacation_csv_data = import_csv_data(candy_stress_vacation_file_path, None, None)?;
 
@@ -194,7 +195,7 @@ pub fn run_stress_levels() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_student_boredom() -> Result<(), Box<dyn Error>> {
+pub fn run_student_boredom() -> Result<(), Error> {
     let student_boredom_file_path = Path::new("./csv-files/student-boredom.csv");
     let student_boredom_csv_data = import_csv_data(student_boredom_file_path, None, None)?;
 
@@ -243,7 +244,7 @@ pub fn run_student_boredom() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_soda_bathroom() -> Result<(), Box<dyn Error>> {
+pub fn run_soda_bathroom() -> Result<(), Error> {
     let lab_7_file_path = Path::new("./csv-files/labs/07_2024-10-15.csv");
     let soda_bathroom_csv_data = import_csv_data(lab_7_file_path, None, None)?;
     let ounce_of_soda_data_array = get_data_stats::<i32>(&soda_bathroom_csv_data,
@@ -266,7 +267,7 @@ pub fn run_soda_bathroom() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_rent_cockroaches() -> Result<(), Box<dyn Error>> {
+pub fn run_rent_cockroaches() -> Result<(), Error> {
     let rent_cockroaches_file_path = Path::new("./csv-files/rent-cockroaches.csv");
     let rent_cockroaches_csv_data = import_csv_data(rent_cockroaches_file_path, None, None)?;
     let rent_data_array = get_data_stats::<i32>(&rent_cockroaches_csv_data,
@@ -289,7 +290,7 @@ pub fn run_rent_cockroaches() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_caffeine_sleep() -> Result<(), Box<dyn Error>> {
+pub fn run_caffeine_sleep() -> Result<(), Error> {
     let caffeine_sleep_path = Path::new("./csv-files/caffeine-sleep.csv");
     let caffeine_sleep_csv_data = import_csv_data(caffeine_sleep_path, None, None)?;
     let caffeine_data_array = get_data_stats::<i32>(&caffeine_sleep_csv_data,
@@ -312,7 +313,7 @@ pub fn run_caffeine_sleep() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_halloween_candy() -> Result<(), Box<dyn Error>> {
+pub fn run_halloween_candy() -> Result<(), Error> {
     let halloween_candy_file_path = Path::new("./csv-files/halloween-candy.csv");
     let halloween_candy_csv_data = import_csv_data(halloween_candy_file_path, None, None)?;
 
@@ -380,7 +381,7 @@ pub fn run_halloween_candy() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_exam_2() -> Result<(), Box<dyn Error>> {
+pub fn run_exam_2() -> Result<(), Error> {
     let exam_2_data_path = Path::new("./csv-files/exam_2_data.csv");
     let exam_2_data = import_csv_data(exam_2_data_path, None, None)?;
 
@@ -402,7 +403,43 @@ pub fn run_exam_2() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn run_superheroes() -> Result<(), Box<dyn Error>> {
+pub fn run_exam_2_followup() -> Result<(), Error> {
+    let exam_2_followup_data_path = Path::new("./csv-files/exam_2_followup_data.csv");
+    let exam_2_followup_data = import_csv_data(exam_2_followup_data_path, None, None)?;
+
+    let siblings_data_array = get_data_stats::<i32>(&exam_2_followup_data, String::from("Siblings"), 1, false, false)?;
+    let cereal_data_array = get_data_stats::<i32>(&exam_2_followup_data, String::from("Bowls of Cereal"), 2, false, false)?;
+    let hours_homework_data_array = get_data_stats::<i32>(&exam_2_followup_data, String::from("Hours of Homework"), 3, false, false)?;
+
+    siblings_data_array.print_data();
+    cereal_data_array.print_data();
+    hours_homework_data_array.print_data();
+
+    let hours_of_homework_siblings_relationship = Relationship::new(String::from("Hours of Homework vs Siblings"),
+                                                                    &hours_homework_data_array,
+                                                                    &siblings_data_array,
+                                                                    None)?;
+    let hours_of_homework_cereal_relationship = Relationship::new(String::from("Hours of Homework vs Cereal"),
+                                                                  &hours_homework_data_array,
+                                                                  &cereal_data_array,
+                                                                  None)?;
+
+    // hours_of_homework_siblings_relationship.print_relationship();
+    hours_of_homework_cereal_relationship.print_relationship();
+
+    let siblings_hours_v_cereal = MultipleRegression::new(String::from("No. of Siblings and Hours of Homework v Cereal"),
+                                                          &cereal_data_array,
+                                                          vec![&siblings_data_array, &hours_homework_data_array])?;
+
+    siblings_hours_v_cereal.print_multiple_regression();
+
+    // info!("0 hrs of homework = {} bowls of cereal", hours_of_homework_cereal_relationship.get_y_hat(0.0));
+    // info!("2 hrs of homework = {} bowls of cereal", hours_of_homework_cereal_relationship.get_y_hat(2.0));
+
+    Ok(())
+}
+
+pub fn run_superheroes() -> Result<(), Error> {
     let superheroes_data_path = Path::new("./csv-files/labs/11_2024-10-22.csv");
     let superheroes_csv_data = import_csv_data(superheroes_data_path, None, None)?;
 
@@ -436,6 +473,8 @@ pub fn run_superheroes() -> Result<(), Box<dyn Error>> {
 
     nemeses_vs_damage_after.print_relationship();
     nemeses_vs_baby_powder.print_relationship();
+
+    // graph_test(String::from("Nemeses vs Baby Powder"), nemeses_vs_baby_powder)?;
 
     // info!("10 Nemeses = ${} in damage", nemeses_vs_damage_after.get_y_hat(10.0));
     // info!("10 Nemeses = {} Bottles of Baby Powder", nemeses_vs_baby_powder.get_y_hat(10.0));

@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{Error, Result};
 use log::info;
 use crate::data_types::data_array::DataArray;
 use crate::data_types::relationship::Relationship;
@@ -15,13 +15,23 @@ pub struct MultipleRegression {
     pub group_means: Vec<f64>,
     pub grand_mean: f64,
     pub sum_of_squares_between_groups: f64, // SSB
-    pub sum_of_squared_errors: f64, // SSE
+    pub sum_of_squares_within_groups: f64, // SSW
+    pub sum_of_squared_residuals: f64, // SSR
+    pub sum_of_squares_total: f64, // SST
+    pub explained_sum_of_squares: f64, // ESS (or sum of squares due to regression)
     pub degrees_of_freedom_between_groups: i32, // dfB
     pub degrees_of_freedom_within_groups: i32, // dfW
     pub mean_square_between_groups: f64, // MSB
     pub mean_square_error: f64, // MSE = SSE / (n - p)
     pub mean_square_regression: f64, // MSR
-    pub anova_type_1: f64,
+    pub root_mean_square_error: f64, // RMSE
+    pub f_type_1: f64,
+    pub coefficient_of_multiple_determination: f64, // R^2
+    pub coefficient_of_multiple_determination_adjusted: f64, // R^2 adjusted
+
+    pub explained_variance: f64, // between-group variability
+    pub unexplained_variance: f64, // within-group variability
+    pub one_way_anova_f_test: f64, //
 
     sum_of_all_data_points_in_all_groups: f64,
 
@@ -81,7 +91,18 @@ impl MultipleRegression {
         // SSE (or SSR) = sum of squared residuals
         for relationship in new_multiple_regression.data_relationships.iter() {
             for residual in relationship.residuals.iter() {
-                new_multiple_regression.sum_of_squared_errors += f64::powi(*residual, 2);
+                new_multiple_regression.sum_of_squared_residuals +=
+                    f64::powi(*residual, 2);
+            }
+            // ESS = sum of squares of fitted values minus the y_mean
+            for fitted in relationship.fitted_values.iter() {
+                new_multiple_regression.explained_sum_of_squares +=
+                    f64::powi(fitted - relationship.data_y.mean, 2);
+            }
+            // SST = sum of squares of observed values minus the y_mean
+            for observed in relationship.observed_values.iter() {
+                new_multiple_regression.sum_of_squares_total +=
+                    f64::powi(observed - relationship.data_y.mean, 2);
             }
         }
 
@@ -99,22 +120,38 @@ impl MultipleRegression {
             // }
         }
 
+        // Sum of Squared Total (SST) = SSB + SSE (true for simple linear models, but not always)
+        // new_multiple_regression.sum_of_squares_total = new_multiple_regression.sum_of_squares_between_groups
+        //     + new_multiple_regression.sum_of_squared_residuals;
+
+        // SSR = SST - SSE (true for simple linear models, but not always)
+        // new_multiple_regression.sum_of_squares_regression = new_multiple_regression.sum_of_squares_total
+        //     - new_multiple_regression.sum_of_squared_residuals;
+
         // Degrees of freedom between groups (dfB): Number of groups - 1
         new_multiple_regression.degrees_of_freedom_between_groups = new_multiple_regression.p - 1;
-        // Degrees of freedom within groups (dfW): Total number of data points - (number of groups + 1)
+
+        // Degrees of freedom within groups (dfW): Total number of data points - Total number of groups
+        // (-1, if an intercept is being used (make this a global switch or something?))
         new_multiple_regression.degrees_of_freedom_within_groups = new_multiple_regression.n
-            - (new_multiple_regression.p + 1);
+            - new_multiple_regression.p - 1;
 
         // Mean Square Between Groups (MSB): SSB / dfB
         new_multiple_regression.mean_square_between_groups = new_multiple_regression.sum_of_squares_between_groups
             / new_multiple_regression.degrees_of_freedom_between_groups as f64;
+
         // Mean Square Error (MSE): SSE / dfW
-        new_multiple_regression.mean_square_error = new_multiple_regression.sum_of_squared_errors
+        new_multiple_regression.mean_square_error = new_multiple_regression.sum_of_squared_residuals
             / new_multiple_regression.degrees_of_freedom_within_groups as f64;
+
         // Mean Square Regression: dividing the regression sum of squares by its degrees of freedom
 
+        // Root Mean Square Error: SSE / n
+        new_multiple_regression.root_mean_square_error = new_multiple_regression.sum_of_squared_residuals
+            / new_multiple_regression.n as f64;
+
         // F = MSB / MSE
-        new_multiple_regression.anova_type_1 = new_multiple_regression.mean_square_between_groups
+        new_multiple_regression.f_type_1 = new_multiple_regression.mean_square_between_groups
             / new_multiple_regression.mean_square_error;
 
         // Interpreting the ANOVA table:
@@ -123,26 +160,42 @@ impl MultipleRegression {
         // larger than the critical value, you can reject the null hypothesis and conclude that there are
         // significant differences between groups.
 
+        // R^2, coefficient of multiple determination = (1 - (SSR/SST))
+        new_multiple_regression.coefficient_of_multiple_determination = 1.0
+            - (new_multiple_regression.sum_of_squared_residuals
+            / new_multiple_regression.sum_of_squares_total
+        );
+
+        // R^2 adjusted = 1 - ((n - 1) / (n - (p + 1)) * (1 - R^2)
+        new_multiple_regression.coefficient_of_multiple_determination_adjusted =
+            1.0 - ((new_multiple_regression.n - 1) / (new_multiple_regression.n - new_multiple_regression.p - 1)) as f64
+                * (1.0 - new_multiple_regression.coefficient_of_multiple_determination);
+
         Ok(new_multiple_regression)
     }
 
     pub fn print_multiple_regression(&self) {
         info!("{}", logging::format_title(&*self.name));
-        info!("Total Variables..............................{}", self.x_data_arrays.len());
-        info!("Group Means..................................{:?}", self.group_means);
-        info!("Grand Mean...................................{}", self.grand_mean);
-        // info!("Sum of Squares Total (SST)...................{}", self.sum_of_squares_total);
-        info!("Sum of Squares Between Groups (SSB)..........{}", self.sum_of_squares_between_groups);
-        // info!("Sum of Squared Errors (SSE)..................{}", self.sum_of_squared_errors);
-        info!("Degrees of Freedom Between Groups (dfB)......{}", self.degrees_of_freedom_between_groups);
-        info!("Degrees of Freedom Within Groups (dfW).......{}", self.degrees_of_freedom_within_groups);
-        info!("Mean Square Between Groups (MSB).............{}", self.mean_square_between_groups);
-        info!("Mean Square Error (MSE)......................{}", self.mean_square_error);
-        info!("ANOVA Type 1.................................{}", self.anova_type_1);
+        info!("Total Variables...............{}", self.x_data_arrays.len());
+        info!("Group Means...................{:?}", self.group_means);
+        info!("Grand Mean....................{}", self.grand_mean);
+        info!("SST...........................{}", self.sum_of_squares_total);
+        info!("SSB...........................{}", self.sum_of_squares_between_groups);
+        info!("SSE...........................{}", self.sum_of_squared_residuals);
+        info!("ESS...........................{}", self.explained_sum_of_squares);
+        info!("dfB...........................{}", self.degrees_of_freedom_between_groups);
+        info!("dfW...........................{}", self.degrees_of_freedom_within_groups);
+        info!("MSB...........................{}", self.mean_square_between_groups);
+        info!("MSE...........................{}", self.mean_square_error);
+        info!("MSR...........................{}", self.mean_square_regression);
+        info!("RMSD..........................{}", self.root_mean_square_error);
+        info!("F Type 1......................{}", self.f_type_1);
+        info!("R^2...........................{}", self.coefficient_of_multiple_determination);
+        info!("R^2 adjusted..................{}", self.coefficient_of_multiple_determination_adjusted);
         info!("{}", logging::format_title(""));
-        info!("ADDITIONAL DEBUG INFO");
-        info!("Total Points in all Data.....................{}", self.n);
-        info!("Sum of All Data in all Groups..................{}", self.sum_of_all_data_points_in_all_groups);
+        // info!("ADDITIONAL DEBUG INFO");
+        // info!("Total Points in all Data.....................{}", self.n);
+        // info!("Sum of All Data in all Groups..................{}", self.sum_of_all_data_points_in_all_groups);
     }
 }
 

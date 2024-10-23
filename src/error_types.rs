@@ -1,11 +1,7 @@
-use std::char::ParseCharError;
 use std::fmt;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::num::{ParseFloatError, ParseIntError};
-use std::str::{FromStr, ParseBoolError};
-use std::string::ParseError;
-use log::error;
+use std::str::FromStr;
 use crate::error_types::CSVErrorKind::Generic;
 // use crate::error_types::CSVErrorKind::Generic;
 
@@ -121,5 +117,3 @@ where
         }
     }
 }
-
-// 141381703
