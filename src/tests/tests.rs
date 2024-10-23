@@ -5,6 +5,8 @@ use std::process;
 use std::str::FromStr;
 use log::{error, info};
 use crate::data_types::data_array::DataArray;
+use crate::data_types::multiple_regression::MultipleRegression;
+// use crate::data_types::multiple_regression::MultipleRegression;
 use crate::data_types::relationship::Relationship;
 use crate::error_types::CSVError;
 use crate::functions::convert::Convert;
@@ -84,7 +86,8 @@ pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
 
             let mut growing_products = 0.0;
             for (datum_x, datum_y) in zipped {
-                growing_products += ((f64::convert(*datum_x) - sleep_data_array.mean.unwrap()) / sleep_data_array.standard_deviation.unwrap()) * ((f64::convert(*datum_y) - donuts_data_array.mean.unwrap()) / donuts_data_array.standard_deviation.unwrap());
+                growing_products += ((f64::convert(*datum_x) - sleep_data_array.mean) / sleep_data_array.standard_deviation)
+                    * ((f64::convert(*datum_y) - donuts_data_array.mean) / donuts_data_array.standard_deviation);
             }
 
             // info!("====COFFEE====");
@@ -94,7 +97,7 @@ pub fn run_coffee_sleep_donuts() -> Result<(), Box<dyn Error>> {
             info!("====DONUTS====");
             info!("{:#?}\n", donuts_data_array);
             info!("Covariance: {}", covariance(&sleep_data_array.data, &donuts_data_array.data));
-            info!("Product of SDs: {}", sleep_data_array.standard_deviation.unwrap() * donuts_data_array.standard_deviation.unwrap());
+            info!("Product of SDs: {}", sleep_data_array.standard_deviation * donuts_data_array.standard_deviation);
             info!("Pearson r: {}", pearson_r);
             info!("t value: {}", t_statistic_from_r(pearson_r, sleep_data_array.data.len()));
             info!("products of z scores: {}", growing_products);
@@ -127,6 +130,7 @@ pub fn run_spotify_streaming() -> Result<(), Box<dyn Error>> {
                                                                       &spotify_total_streams_data_array,
                                                                       None)?;
     spotify_playlists_vs_streams_relationship.print_relationship();
+    // spotify_total_streams_data_array.run_graph_test();
     Ok(())
 }
 
@@ -233,6 +237,208 @@ pub fn run_student_boredom() -> Result<(), Box<dyn Error>> {
     backpack_boredom_relationship.print_relationship();
     backpack_lectures_relationship.print_relationship();
 
+    // info!("x normal dist: {}", minutes_backpack_data_array.get_probability_density(50.0)?);
+
+
+    Ok(())
+}
+
+pub fn run_soda_bathroom() -> Result<(), Box<dyn Error>> {
+    let lab_7_file_path = Path::new("./csv-files/labs/07_2024-10-15.csv");
+    let soda_bathroom_csv_data = import_csv_data(lab_7_file_path, None, None)?;
+    let ounce_of_soda_data_array = get_data_stats::<i32>(&soda_bathroom_csv_data,
+                                                         String::from("Ounces of Soda Drunk"),
+                                                         1,
+                                                         false,
+                                                         false)?;
+    let trips_to_bathroom_data_array = get_data_stats::<i32>(&soda_bathroom_csv_data,
+                                                             String::from("Trips to Bathroom"),
+                                                             2,
+                                                             false,
+                                                             false)?;
+    let soda_bathroom_relationship = Relationship::new(String::from("Ounces of Soda Pop vs Trips to Bathroom"),
+                                                       &ounce_of_soda_data_array,
+                                                       &trips_to_bathroom_data_array,
+                                                       None)?;
+
+    soda_bathroom_relationship.print_relationship();
+    info!("How many times they go to the bathroom after 70 oz of soda: {}", soda_bathroom_relationship.get_y_hat(70.0));
+    Ok(())
+}
+
+pub fn run_rent_cockroaches() -> Result<(), Box<dyn Error>> {
+    let rent_cockroaches_file_path = Path::new("./csv-files/rent-cockroaches.csv");
+    let rent_cockroaches_csv_data = import_csv_data(rent_cockroaches_file_path, None, None)?;
+    let rent_data_array = get_data_stats::<i32>(&rent_cockroaches_csv_data,
+                                                String::from("Rent"),
+                                                1,
+                                                false,
+                                                false)?;
+    let cockroaches_data_array = get_data_stats::<i32>(&rent_cockroaches_csv_data,
+                                                       String::from("Cockroaches in Apartment"),
+                                                       2,
+                                                       false,
+                                                       false)?;
+    let rent_cockroaches_relationship = Relationship::new(String::from("Rent vs Cockroaches in Apartment"),
+                                                          &rent_data_array,
+                                                          &cockroaches_data_array,
+                                                          None)?;
+
+    rent_cockroaches_relationship.print_relationship();
+    info!("Number of cockroaches at $500 rent: {}", rent_cockroaches_relationship.get_y_hat(500.0));
+    Ok(())
+}
+
+pub fn run_caffeine_sleep() -> Result<(), Box<dyn Error>> {
+    let caffeine_sleep_path = Path::new("./csv-files/caffeine-sleep.csv");
+    let caffeine_sleep_csv_data = import_csv_data(caffeine_sleep_path, None, None)?;
+    let caffeine_data_array = get_data_stats::<i32>(&caffeine_sleep_csv_data,
+                                                    String::from("Ounces of Caffeine Imbibed"),
+                                                    1,
+                                                    false,
+                                                    false)?;
+    let sleep_data_array = get_data_stats::<i32>(&caffeine_sleep_csv_data,
+                                                 String::from("Hours of Sleep"),
+                                                 2,
+                                                 false,
+                                                 false)?;
+    let sleep_vs_caffeine_relationship = Relationship::new(String::from("Hours of Sleep vs Ounce of Caffeine"),
+                                                           &sleep_data_array,
+                                                           &caffeine_data_array,
+                                                           None)?;
+
+    sleep_vs_caffeine_relationship.print_relationship();
+    info!("Caffeine consumed if 4 hours slept: {}", sleep_vs_caffeine_relationship.get_y_hat(4.0));
+    Ok(())
+}
+
+pub fn run_halloween_candy() -> Result<(), Box<dyn Error>> {
+    let halloween_candy_file_path = Path::new("./csv-files/halloween-candy.csv");
+    let halloween_candy_csv_data = import_csv_data(halloween_candy_file_path, None, None)?;
+
+    let age_data_array = get_data_stats::<i32>(&halloween_candy_csv_data,
+                                               String::from("Age"),
+                                               1,
+                                               false,
+                                               false)?;
+    let cuteness_data_array = get_data_stats::<i32>(&halloween_candy_csv_data,
+                                                    String::from("Cuteness"),
+                                                    3,
+                                                    false,
+                                                    false)?;
+    let income_data_array = get_data_stats::<i32>(&halloween_candy_csv_data,
+                                                  String::from("Income"),
+                                                  4,
+                                                  false,
+                                                  false)?;
+    let houses_visited_data_array = get_data_stats::<i32>(&halloween_candy_csv_data,
+                                                          String::from("Houses Visited"),
+                                                          5,
+                                                          false,
+                                                          false)?;
+    let candy_received_data_array = get_data_stats::<i32>(&halloween_candy_csv_data,
+                                                          String::from("Candy Received"),
+                                                          6,
+                                                          false,
+                                                          false)?;
+
+    let income_vs_candy_received_relationship = Relationship::new(String::from("Income vs Candy Received"),
+                                                                  &income_data_array,
+                                                                  &candy_received_data_array,
+                                                                  None)?;
+    let houses_visited_vs_candy_relationship = Relationship::new(String::from("Houses Visited vs Candy Received"),
+                                                                 &houses_visited_data_array,
+                                                                 &candy_received_data_array,
+                                                                 None)?;
+    let cuteness_rating_vs_candy_relationship = Relationship::new(String::from("Cuteness Rating vs Candy Received"),
+                                                                  &cuteness_data_array,
+                                                                  &candy_received_data_array,
+                                                                  None)?;
+    let age_vs_cuteness_rating_relationship = Relationship::new(String::from("Age vs Cuteness Rating"),
+                                                                &age_data_array,
+                                                                &cuteness_data_array,
+                                                                None)?;
+
+
+    income_vs_candy_received_relationship.print_relationship();
+    houses_visited_vs_candy_relationship.print_relationship();
+    cuteness_rating_vs_candy_relationship.print_relationship();
+    age_vs_cuteness_rating_relationship.print_relationship();
+
+    let multi_regression = MultipleRegression::new(String::from("Test Multi Regression"),
+                                                   &candy_received_data_array,
+                                                   vec![
+                                                       &cuteness_data_array,
+                                                       &income_data_array,
+                                                       &age_data_array])?;
+
+    multi_regression.print_multiple_regression();
+
+    // info!("Cute at 1.5 yrs = {}", age_vs_cuteness_rating_relationship.get_y_hat(2.3));
+    // info!("Candy from $billion neighborhood {}", income_vs_candy_received_relationship.get_y_hat(1000000000.00));
+
+    Ok(())
+}
+
+pub fn run_exam_2() -> Result<(), Box<dyn Error>> {
+    let exam_2_data_path = Path::new("./csv-files/exam_2_data.csv");
+    let exam_2_data = import_csv_data(exam_2_data_path, None, None)?;
+
+    let siblings_data_array = get_data_stats::<i32>(&exam_2_data, String::from("Siblings"), 2, false, false)?;
+    let cereal_data_array = get_data_stats::<i32>(&exam_2_data, String::from("Bowls of Cereal"), 3, false, false)?;
+    let hours_homework_data_array = get_data_stats::<i32>(&exam_2_data, String::from("Hours of Homework"), 4, false, false)?;
+
+    siblings_data_array.print_data();
+    cereal_data_array.print_data();
+    hours_homework_data_array.print_data();
+
+    let hours_of_homework_siblings_relationship = Relationship::new(String::from("Hours of Homework vs Siblings"),
+                                                                    &hours_homework_data_array,
+                                                                    &siblings_data_array,
+                                                                    None)?;
+
+    hours_of_homework_siblings_relationship.print_relationship();
+
+    Ok(())
+}
+
+pub fn run_superheroes() -> Result<(), Box<dyn Error>> {
+    let superheroes_data_path = Path::new("./csv-files/labs/11_2024-10-22.csv");
+    let superheroes_csv_data = import_csv_data(superheroes_data_path, None, None)?;
+
+    // categorical
+    // let superheroes_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Superheroes"), 1, false, false)?;
+    // let affiliation_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Affiliation"), 2, false, false)?;
+
+    // continuous
+    let nemeses_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Nemeses"), 3, false, false)?;
+    let sleep_before_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Sleep Before"), 4, false, false)?;
+    let sleep_after_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Sleep After"), 5, false, false)?;
+    let damage_before_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Damage Before"), 6, false, false)?;
+    let damage_after_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Damage After"), 7, false, false)?;
+    let baby_powder_data_array = get_data_stats::<i32>(&superheroes_csv_data, String::from("Baby Powder"), 8, false, false)?;
+
+    nemeses_data_array.print_data();
+    sleep_before_data_array.print_data();
+    sleep_after_data_array.print_data();
+    damage_before_data_array.print_data();
+    damage_after_data_array.print_data();
+    baby_powder_data_array.print_data();
+
+    let nemeses_vs_damage_after = Relationship::new(String::from("Nemeses vs Damage After"),
+                                                    &nemeses_data_array,
+                                                    &damage_after_data_array,
+                                                    None)?;
+    let nemeses_vs_baby_powder = Relationship::new(String::from("Nemeses vs Baby Powder"),
+                                                   &nemeses_data_array,
+                                                   &baby_powder_data_array,
+                                                   None)?;
+
+    nemeses_vs_damage_after.print_relationship();
+    nemeses_vs_baby_powder.print_relationship();
+
+    // info!("10 Nemeses = ${} in damage", nemeses_vs_damage_after.get_y_hat(10.0));
+    // info!("10 Nemeses = {} Bottles of Baby Powder", nemeses_vs_baby_powder.get_y_hat(10.0));
 
     Ok(())
 }

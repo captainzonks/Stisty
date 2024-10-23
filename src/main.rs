@@ -1,8 +1,9 @@
-mod functions;
-mod logging;
 mod data_types;
 mod error_types;
+mod functions;
+mod logging;
 mod tests;
+mod graphing;
 
 use std::error::Error;
 use std::fmt::{Debug, Display};
@@ -23,19 +24,10 @@ use ratatui::{
 };
 
 use std::io;
-use std::iter::Sum;
-use std::path::Path;
-use functions::{stats_math, csv::import_csv_data};
-use std::process;
-use std::str::FromStr;
-use log::{error, info};
+use log::info;
+// use crate::graphing::graph_test;
 use crate::logging::{format_title, setup_logger};
-use crate::data_types::data_array::DataArray;
-use crate::data_types::relationship::Relationship;
-use crate::error_types::CSVError;
-use crate::functions::convert::Convert;
-use crate::functions::csv::CSVData;
-use crate::tests::tests::{run_menudo_test, run_months_ice_cream, run_spotify_streaming, run_stress_levels, run_student_boredom};
+use crate::tests::tests::{run_soda_bathroom, run_menudo_test, run_months_ice_cream, run_spotify_streaming, run_stress_levels, run_student_boredom, run_rent_cockroaches, run_caffeine_sleep, run_halloween_candy, run_exam_2, run_superheroes};
 
 
 fn run_ratatui(mut terminal: DefaultTerminal) -> io::Result<()> {
@@ -71,10 +63,15 @@ fn main() -> Result<()> {
     // run_months_ice_cream().expect("Months ice cream test failed.");
     // run_spotify_streaming().expect("Spotify test failed.");
     // run_stress_levels().expect("Stress levels test failed.");
-    run_student_boredom().expect("Student boredom test failed.");
+    // run_student_boredom().expect("Student boredom test failed.");
+    // run_soda_bathroom().expect("Lab 7 failed");
+    // run_rent_cockroaches().expect("Rent Cockroaches test failed");
+    // run_caffeine_sleep().expect("Sleep caffeine test failed");
+    run_halloween_candy().expect("Halloween candy test failed");
+    // run_exam_2().expect("EXAM FAIL");
+    // run_superheroes().expect("superheroes failed");
 
-
-    info!("=================================================================");
+    info!("{}", format_title(&*""));
 
     Ok(())
 }
