@@ -241,6 +241,10 @@ where
     }
 }
 
+pub fn get_slope_from_r_and_sd(r: f64, sd_x: f64, sd_y: f64) -> Result<f64, Error> {
+    Ok(r * (sd_y / sd_x))
+}
+
 pub fn get_raw_scores_from_deviations(deviations: &Vec<f64>, mean: f64) -> Result<Vec<f64>, Error> {
     let mut raw_scores = Vec::with_capacity(deviations.len());
     for deviation in deviations.iter() {
