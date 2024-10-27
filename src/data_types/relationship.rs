@@ -11,19 +11,20 @@ use crate::logging;
 pub struct Relationship {
     pub name: String,
     pub n: i32,
-    pub coefficients: i32,
+    pub p: i32,
+
     pub data_x: DataArray,
     pub data_y: DataArray,
+
     pub sum_of_product_of_z_scores: f64,
     pub sum_of_product_of_deviations: f64,
     pub covariance: f64,
     pub pearson_r: f64,
-    pub degrees_of_freedom: i32,
-    pub t_statistic: f64,
+    pub t_score: f64,
     pub slope_beta: f64,
-    pub slope_beta_hat: f64,
+    pub slope_beta_hat: f64, // unbiased
     pub intercept_alpha: f64,
-    pub intercept_alpha_hat: f64,
+    pub intercept_alpha_hat: f64, // unbiased
     pub observed_values: Vec<f64>, // y_i
     pub fitted_values: Vec<f64>, // y-hat
     pub residuals: Vec<f64>, // y_i - y-hat
@@ -36,11 +37,10 @@ pub struct Relationship {
 }
 
 impl Relationship {
-    pub fn new(name: String, data_x: &DataArray, data_y: &DataArray, degrees_of_freedom: Option<i32>) -> Result<Relationship, Error> {
+    pub fn new(name: String, data_x: &DataArray, data_y: &DataArray) -> Result<Relationship, Error> {
         let mut new_relationship: Relationship = Relationship::default();
         new_relationship.name = name;
         new_relationship.n = data_x.data.len() as i32;
-        new_relationship.degrees_of_freedom = degrees_of_freedom.unwrap_or(2);
 
         new_relationship.data_x = data_x.clone();
         new_relationship.data_y = data_y.clone();
@@ -59,7 +59,7 @@ impl Relationship {
             new_relationship.sum_of_product_of_deviations += deviation_x * deviation_y;
         }
 
-        // Covariance = (sum(data_x's deviations * data_y's deviations)) / (N (- 1 if it's a sample, and by default))
+        // Covariance = (sum(data_x's deviations * data_y's deviations)) / (N (- 1, for Bessel's Correction))
         new_relationship.covariance = new_relationship.sum_of_product_of_deviations
             / (new_relationship.data_x.data.len() as f64
             - if new_relationship.data_x.population.unwrap_or_default() { 0.0 } else { 1.0 });
@@ -68,9 +68,9 @@ impl Relationship {
         new_relationship.pearson_r = new_relationship.covariance
             / (new_relationship.data_x.standard_deviation * data_y.standard_deviation);
 
-        // t-statistic = r * sqrt(N - df) / sqrt(1 - r^2)
-        new_relationship.t_statistic = new_relationship.pearson_r
-            * f64::sqrt(new_relationship.data_x.data.len() as f64 - new_relationship.degrees_of_freedom as f64)
+        // t-score (from Pearson r) = r * sqrt(N - 2) / sqrt(1 - r^2)
+        new_relationship.t_score = new_relationship.pearson_r
+            * f64::sqrt(new_relationship.data_x.data.len() as f64 - 2.0)
             / f64::sqrt(1.0 - f64::powi(new_relationship.pearson_r, 2));
 
         // y-hat = beta(x) + alpha
@@ -144,7 +144,7 @@ impl Relationship {
         info!("Sum of Product of Deviations.....{}", self.sum_of_product_of_deviations);
         info!("Covariance.......................{}", self.covariance);
         info!("Pearson r........................{}", self.pearson_r);
-        info!("t-statistic......................{}", self.t_statistic);
+        info!("t-score..........................{}", self.t_score);
         info!("Slope (Beta).....................{}", self.slope_beta);
         info!("Estimated Slope (Beta-hat).......{}", self.slope_beta_hat);
         info!("Intercept (Alpha)................{}", self.intercept_alpha);

@@ -69,8 +69,8 @@ fn main() -> Result<()> {
     // run_caffeine_sleep().expect("Sleep caffeine test failed");
     // run_halloween_candy().expect("Halloween candy test failed");
     // run_exam_2().expect("exam 2 failed");
-    // run_exam_2_followup().expect("exam 2 followup failed");
-    run_superheroes().expect("superheroes failed");
+    run_exam_2_followup().expect("exam 2 followup failed");
+    // run_superheroes().expect("superheroes failed");
 
     info!("{}", format_title(&*""));
 

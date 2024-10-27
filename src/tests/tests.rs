@@ -6,7 +6,6 @@ use std::str::FromStr;
 use log::{error, info};
 use crate::data_types::data_array::DataArray;
 use crate::data_types::multiple_regression::MultipleRegression;
-// use crate::data_types::multiple_regression::MultipleRegression;
 use crate::data_types::relationship::Relationship;
 use crate::error_types::CSVError;
 use crate::functions::convert::Convert;
@@ -33,8 +32,7 @@ pub fn run_menudo_test() -> Result<(), Error> {
 
     let tenure_vs_ending_age_relationship = Relationship::new(String::from("Member Tenure vs Ending Ages"),
                                                               &tenure_data_array,
-                                                              &ending_age_data_array,
-                                                              None)?;
+                                                              &ending_age_data_array)?;
 
     tenure_data_array.print_data();
     ending_age_data_array.print_data();
@@ -59,8 +57,7 @@ pub fn run_months_ice_cream() -> Result<(), Error> {
 
     let relationship_vs_ice_cream_relationship = Relationship::new(String::from("Length of Relationship vs Pints of Ice Cream Eaten"),
                                                                    &relationship_months_data_array,
-                                                                   &pints_of_ice_cream_data_array,
-                                                                   None)?;
+                                                                   &pints_of_ice_cream_data_array)?;
 
     relationship_months_data_array.print_data();
     pints_of_ice_cream_data_array.print_data();
@@ -128,8 +125,7 @@ pub fn run_spotify_streaming() -> Result<(), Error> {
     spotify_total_streams_data_array.print_data();
     let spotify_playlists_vs_streams_relationship = Relationship::new(String::from("Spotify Playlists vs Streams"),
                                                                       &spotify_total_playlists_data_array,
-                                                                      &spotify_total_streams_data_array,
-                                                                      None)?;
+                                                                      &spotify_total_streams_data_array)?;
     spotify_playlists_vs_streams_relationship.print_relationship();
     // spotify_total_streams_data_array.run_graph_test();
     Ok(())
@@ -167,18 +163,15 @@ pub fn run_stress_levels() -> Result<(), Error> {
 
     let candy_bars_vs_stress_relationship = Relationship::new(String::from("Candy Bars vs Stress Relationship"),
                                                               &candy_bars_eaten_data_array,
-                                                              &stress_level_data_array,
-                                                              None)?;
+                                                              &stress_level_data_array)?;
 
     let stress_vs_candy_bars_relationship = Relationship::new(String::from("Stress vs Candy Bars Relationship"),
                                                               &stress_level_data_array,
-                                                              &candy_bars_eaten_data_array,
-                                                              None)?;
+                                                              &candy_bars_eaten_data_array)?;
 
     let weeks_vs_stress_relationship = Relationship::new(String::from("Weeks Since Last Vacation vs Stress Relationship"),
                                                          &weeks_since_vacation_data_array,
-                                                         &stress_level_data_array,
-                                                         None)?;
+                                                         &stress_level_data_array)?;
 
 
     candy_bars_eaten_data_array.print_data();
@@ -218,18 +211,15 @@ pub fn run_student_boredom() -> Result<(), Error> {
 
     let lectures_boredom_relationship = Relationship::new(String::from("Lectures Attended vs Boredom Relationship"),
                                                           &lectures_attended_data_array,
-                                                          &student_boredom_data_array,
-                                                          None)?;
+                                                          &student_boredom_data_array)?;
 
     let backpack_boredom_relationship = Relationship::new(String::from("Backpack Minutes vs Boredom Relationship"),
                                                           &minutes_backpack_data_array,
-                                                          &student_boredom_data_array,
-                                                          None)?;
+                                                          &student_boredom_data_array)?;
 
     let backpack_lectures_relationship = Relationship::new(String::from("Backpack vs Lectures Attended Relationship"),
                                                            &minutes_backpack_data_array,
-                                                           &lectures_attended_data_array,
-                                                           None)?;
+                                                           &lectures_attended_data_array)?;
 
     minutes_backpack_data_array.print_data();
     lectures_attended_data_array.print_data();
@@ -259,8 +249,7 @@ pub fn run_soda_bathroom() -> Result<(), Error> {
                                                              false)?;
     let soda_bathroom_relationship = Relationship::new(String::from("Ounces of Soda Pop vs Trips to Bathroom"),
                                                        &ounce_of_soda_data_array,
-                                                       &trips_to_bathroom_data_array,
-                                                       None)?;
+                                                       &trips_to_bathroom_data_array)?;
 
     soda_bathroom_relationship.print_relationship();
     info!("How many times they go to the bathroom after 70 oz of soda: {}", soda_bathroom_relationship.get_y_hat(70.0));
@@ -282,8 +271,7 @@ pub fn run_rent_cockroaches() -> Result<(), Error> {
                                                        false)?;
     let rent_cockroaches_relationship = Relationship::new(String::from("Rent vs Cockroaches in Apartment"),
                                                           &rent_data_array,
-                                                          &cockroaches_data_array,
-                                                          None)?;
+                                                          &cockroaches_data_array)?;
 
     rent_cockroaches_relationship.print_relationship();
     info!("Number of cockroaches at $500 rent: {}", rent_cockroaches_relationship.get_y_hat(500.0));
@@ -305,8 +293,7 @@ pub fn run_caffeine_sleep() -> Result<(), Error> {
                                                  false)?;
     let sleep_vs_caffeine_relationship = Relationship::new(String::from("Hours of Sleep vs Ounce of Caffeine"),
                                                            &sleep_data_array,
-                                                           &caffeine_data_array,
-                                                           None)?;
+                                                           &caffeine_data_array)?;
 
     sleep_vs_caffeine_relationship.print_relationship();
     info!("Caffeine consumed if 4 hours slept: {}", sleep_vs_caffeine_relationship.get_y_hat(4.0));
@@ -345,20 +332,16 @@ pub fn run_halloween_candy() -> Result<(), Error> {
 
     let income_vs_candy_received_relationship = Relationship::new(String::from("Income vs Candy Received"),
                                                                   &income_data_array,
-                                                                  &candy_received_data_array,
-                                                                  None)?;
+                                                                  &candy_received_data_array)?;
     let houses_visited_vs_candy_relationship = Relationship::new(String::from("Houses Visited vs Candy Received"),
                                                                  &houses_visited_data_array,
-                                                                 &candy_received_data_array,
-                                                                 None)?;
+                                                                 &candy_received_data_array)?;
     let cuteness_rating_vs_candy_relationship = Relationship::new(String::from("Cuteness Rating vs Candy Received"),
                                                                   &cuteness_data_array,
-                                                                  &candy_received_data_array,
-                                                                  None)?;
+                                                                  &candy_received_data_array)?;
     let age_vs_cuteness_rating_relationship = Relationship::new(String::from("Age vs Cuteness Rating"),
                                                                 &age_data_array,
-                                                                &cuteness_data_array,
-                                                                None)?;
+                                                                &cuteness_data_array)?;
 
 
     income_vs_candy_received_relationship.print_relationship();
@@ -395,8 +378,7 @@ pub fn run_exam_2() -> Result<(), Error> {
 
     let hours_of_homework_siblings_relationship = Relationship::new(String::from("Hours of Homework vs Siblings"),
                                                                     &hours_homework_data_array,
-                                                                    &siblings_data_array,
-                                                                    None)?;
+                                                                    &siblings_data_array)?;
 
     hours_of_homework_siblings_relationship.print_relationship();
 
@@ -415,16 +397,14 @@ pub fn run_exam_2_followup() -> Result<(), Error> {
     cereal_data_array.print_data();
     hours_homework_data_array.print_data();
 
-    let hours_of_homework_siblings_relationship = Relationship::new(String::from("Hours of Homework vs Siblings"),
-                                                                    &hours_homework_data_array,
+    let siblings_hours_of_homework_relationship = Relationship::new(String::from("Siblings vs Hours of Homework"),
                                                                     &siblings_data_array,
-                                                                    None)?;
+                                                                    &hours_homework_data_array)?;
     let hours_of_homework_cereal_relationship = Relationship::new(String::from("Hours of Homework vs Cereal"),
                                                                   &hours_homework_data_array,
-                                                                  &cereal_data_array,
-                                                                  None)?;
+                                                                  &cereal_data_array)?;
 
-    // hours_of_homework_siblings_relationship.print_relationship();
+    siblings_hours_of_homework_relationship.print_relationship();
     hours_of_homework_cereal_relationship.print_relationship();
 
     let siblings_hours_v_cereal = MultipleRegression::new(String::from("No. of Siblings and Hours of Homework v Cereal"),
@@ -464,15 +444,23 @@ pub fn run_superheroes() -> Result<(), Error> {
 
     let nemeses_vs_damage_after = Relationship::new(String::from("Nemeses vs Damage After"),
                                                     &nemeses_data_array,
-                                                    &damage_after_data_array,
-                                                    None)?;
+                                                    &damage_after_data_array)?;
     let nemeses_vs_baby_powder = Relationship::new(String::from("Nemeses vs Baby Powder"),
                                                    &nemeses_data_array,
-                                                   &baby_powder_data_array,
-                                                   None)?;
+                                                   &baby_powder_data_array)?;
+
+    let nemeses_vs_multiple = MultipleRegression::new(String::from("Nemeses vs Multiple"),
+                                                      &nemeses_data_array,
+                                                      vec![
+                                                          &sleep_before_data_array,
+                                                          &sleep_after_data_array,
+                                                          &damage_before_data_array,
+                                                          &damage_after_data_array,
+                                                          &baby_powder_data_array])?;
 
     nemeses_vs_damage_after.print_relationship();
     nemeses_vs_baby_powder.print_relationship();
+    nemeses_vs_multiple.print_multiple_regression();
 
     // graph_test(String::from("Nemeses vs Baby Powder"), nemeses_vs_baby_powder)?;
 
