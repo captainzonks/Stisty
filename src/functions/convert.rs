@@ -1,3 +1,5 @@
+use anyhow::Error;
+
 pub trait Convert<T> {
     fn convert(x: T) -> Self;
 }
@@ -36,10 +38,10 @@ impl Convert<String> for f64 {
         }
     }
 }
-pub fn convert_slice_to_f64<T: Copy>(raw: &[T], offset: f64, scale: f64) -> Vec<f64>
+pub fn convert_slice_to_f64<T: Copy>(raw: &[T], offset: f64, scale: f64) -> anyhow::Result<Vec<f64>, Error>
 where
     f64: Convert<T>,
 {
-    raw.iter().map(|&x| (f64::convert(x) + offset) * scale)
-        .collect::<Vec<f64>>()
+    Ok(raw.iter().map(|&x| (f64::convert(x) + offset) * scale)
+        .collect::<Vec<f64>>())
 }
