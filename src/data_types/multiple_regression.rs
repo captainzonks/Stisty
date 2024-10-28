@@ -7,8 +7,8 @@ use crate::logging;
 #[derive(Default, Debug)]
 pub struct MultipleRegression {
     pub name: String,
-    pub n: i32, // total count of all observations
-    pub p: i32, // total count of predictor variables
+    pub n: f64, // total count of all observations
+    pub p: f64, // total count of predictor variables
     pub x_data_arrays: Vec<DataArray>,
     pub y_data_array: DataArray,
 
@@ -23,8 +23,8 @@ pub struct MultipleRegression {
     pub sum_of_squares_total: f64, // SST
     pub explained_sum_of_squares: f64, // ESS (or sum of squares due to regression)
 
-    pub degrees_of_freedom_between_groups: i32, // dfB
-    pub degrees_of_freedom_within_groups: i32, // dfW
+    pub degrees_of_freedom_between_groups: f64, // dfB
+    pub degrees_of_freedom_within_groups: f64, // dfW
 
     pub mean_square_between_groups: f64, // MSB
     pub mean_square_error: f64, // MSE = SSE / (n - p)
@@ -64,7 +64,7 @@ impl MultipleRegression {
         new_multiple_regression.x_data_arrays = x_data_arrays.clone().into_iter()
             .map(|data_array: &DataArray| data_array.clone()).collect();
         new_multiple_regression.y_data_array = y_data_array.clone();
-        new_multiple_regression.p = x_data_arrays.len() as i32;
+        new_multiple_regression.p = f64::from(x_data_arrays.len() as i32);
 
         // create an array of relationships of all x data to y data
         for x_data_array in new_multiple_regression.x_data_arrays.iter() {
@@ -82,7 +82,7 @@ impl MultipleRegression {
             new_multiple_regression.group_means.push(data_array.mean.clone());
 
             // keep tally of all data points
-            new_multiple_regression.n += data_array.data.len() as i32;
+            new_multiple_regression.n += f64::from(data_array.data.len() as i32);
 
             // reverse the means back into sums for each data array
             new_multiple_regression._sum_of_all_data_points_in_all_groups += new_multiple_regression.group_means.get(i).unwrap()
@@ -134,12 +134,12 @@ impl MultipleRegression {
         //     - new_multiple_regression.sum_of_squared_residuals;
 
         // Degrees of freedom between groups (dfB): Number of groups - 1
-        new_multiple_regression.degrees_of_freedom_between_groups = new_multiple_regression.p - 1;
+        new_multiple_regression.degrees_of_freedom_between_groups = new_multiple_regression.p - 1.0;
 
         // Degrees of freedom within groups (dfW): Total number of data points - Total number of groups
         // - 1 if intercept is being used, which is a recommended default
         new_multiple_regression.degrees_of_freedom_within_groups = new_multiple_regression.n
-            - new_multiple_regression.p - 1;
+            - new_multiple_regression.p - 1.0;
 
         // Mean Square Between Groups (MSB): SSB / dfB
         new_multiple_regression.mean_square_between_groups = new_multiple_regression.sum_of_squares_between_groups
@@ -149,9 +149,9 @@ impl MultipleRegression {
         new_multiple_regression.mean_square_error = new_multiple_regression.sum_of_squares_error
             / new_multiple_regression.degrees_of_freedom_within_groups as f64;
 
-        // Mean Square Regression (MSR): dividing the regression sum of squares by its degrees of freedom
+        // Mean Square Regression (MSR): dividing the regression sum of squares by p
         new_multiple_regression.mean_square_regression = new_multiple_regression.explained_sum_of_squares
-            / new_multiple_regression.p as f64;
+            / new_multiple_regression.p;
 
         // Root Mean Square Error: SSE / n
         new_multiple_regression.root_mean_square_error = new_multiple_regression.sum_of_squares_error
@@ -174,7 +174,7 @@ impl MultipleRegression {
 
         // R^2 adjusted = 1 - ((n - 1) / (n - p - 1)) * (1 - R^2)
         new_multiple_regression.coefficient_of_multiple_determination_adjusted =
-            1.0 - ((new_multiple_regression.n - 1) / (new_multiple_regression.n - new_multiple_regression.p - 1)) as f64
+            1.0 - ((new_multiple_regression.n - 1.0) / (new_multiple_regression.n - new_multiple_regression.p - 1.0))
                 * (new_multiple_regression.explained_sum_of_squares / new_multiple_regression.sum_of_squares_total);
 
         Ok(new_multiple_regression)

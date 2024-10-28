@@ -21,17 +21,17 @@ pub struct SimpleLinearRegression {
 
     pub covariance: f64,
     pub pearson_r: f64,
-    pub t_score: f64,
 
     pub slope_beta: f64, // biased
     pub slope_beta_hat: f64, // unbiased
     pub intercept_alpha: f64, // biased
     pub intercept_alpha_hat: f64, // unbiased
+    pub t_score_coefficient: f64, // (from Pearson r) r * sqrt(N - 2) / sqrt(1 - r^2)
+    pub t_score_intercept: f64, // intercept / standard error of intercept
 
     pub standard_error_of_regression_slope: f64, // SE(Beta-hat) = sqrt((1/(n-p-1)*MSE)/SSx)
     pub standard_error_of_regression_intercept: f64, // SE(alpha-hat) = SE(Beta-hat) * sqrt((1/n)*sum(x^2))
 
-    // pub observed_values: Vec<f64>, // y_i
     pub fitted_values: Vec<f64>, // y-hat
     pub residuals: Vec<f64>, // e_i = y_i - y-hat
 
@@ -39,11 +39,14 @@ pub struct SimpleLinearRegression {
     pub sum_of_squares_error: f64, // SSE
     pub explained_sum_of_squares: f64, // ESS
 
+    pub mean_square_regression: f64, // MSR = ESS / p, or MSR = ESS in simple linear regression
     pub mean_square_error: f64, // MSE = SSE / (n - p); standard error of the estimate
     pub residual_standard_error: f64, // sqrt((1/(n - p - 1)) * SSE)
 
     pub coefficient_of_determination: f64, // R^2
     pub coefficient_of_determination_adjusted: f64, // R^2 adjusted
+
+    pub one_way_anova_f_statistic: f64, // Type 1
 
     // R^2 = proportion of observed y variation that can be explained by the simple linear regression model
 }
@@ -79,8 +82,8 @@ impl SimpleLinearRegression {
         new_relationship.pearson_r = new_relationship.covariance
             / (new_relationship.data_x.standard_deviation * data_y.standard_deviation);
 
-        // t-score (from Pearson r) = r * sqrt(N - 2) / sqrt(1 - r^2)
-        new_relationship.t_score = new_relationship.pearson_r
+        // t-score for coefficient (from Pearson r) = r * sqrt(N - 2) / sqrt(1 - r^2)
+        new_relationship.t_score_coefficient = new_relationship.pearson_r
             * f64::sqrt(new_relationship.n - new_relationship.p - 1.0)
             / f64::sqrt(1.0 - f64::powi(new_relationship.pearson_r, 2));
 
@@ -128,9 +131,13 @@ impl SimpleLinearRegression {
             .map(|fitted_y| f64::powi(fitted_y - new_relationship.data_y.mean, 2))
             .sum::<f64>();
 
-        // MSE = SSE / (n)
+        // MSR = ESS / p, or MSR = ESS (since p = 1)
+        new_relationship.mean_square_regression = new_relationship.explained_sum_of_squares
+            / new_relationship.p;
+
+        // MSE = SSE / n
         new_relationship.mean_square_error = new_relationship.sum_of_squares_error
-            / new_relationship.n;
+            / (new_relationship.n - new_relationship.p - 1.0);
 
         // RSE = sqrt((1/(n - p - 1)) * SSE)
         new_relationship.residual_standard_error =
@@ -151,6 +158,9 @@ impl SimpleLinearRegression {
                 .map(|x| f64::powi(*x, 2))
                 .collect::<Vec<f64>>().iter().sum::<f64>());
 
+        // t-score for the intercept (alpha / standard error of intercept)
+        new_relationship.t_score_intercept = new_relationship.intercept_alpha
+            / new_relationship.standard_error_of_regression_intercept;
 
         // ESS, cheaper method (and perhaps not completely accurate)
         // new_relationship.explained_sum_of_squares = new_relationship.sum_of_squares_total - new_relationship.sum_of_squares_error;
@@ -164,6 +174,10 @@ impl SimpleLinearRegression {
         new_relationship.coefficient_of_determination_adjusted =
             1.0 - ((1.0 - new_relationship.coefficient_of_determination) *
                 ((new_relationship.n - 1.0) / (new_relationship.n - new_relationship.p - 1.0)));
+
+        // F-statistic, one-way ANOVA Type 1
+        new_relationship.one_way_anova_f_statistic = new_relationship.mean_square_regression
+            / new_relationship.mean_square_error;
 
 
         Ok(new_relationship)
@@ -196,23 +210,26 @@ impl SimpleLinearRegression {
         info!("Sum of Product of Deviations.....{}", self.sum_of_product_of_deviations);
         info!("Covariance.......................{}", self.covariance);
         info!("Pearson r........................{}", self.pearson_r);
-        info!("t-score..........................{}", self.t_score);
         info!("Slope (Beta).....................{}", self.slope_beta);
         info!("Estimated Slope (Beta-hat).......{}", self.slope_beta_hat);
         info!("Intercept (Alpha)................{}", self.intercept_alpha);
         info!("Estimated Intercept (Alpha-hat)..{}", self.intercept_alpha_hat);
         info!("SE(Beta-hat).....................{}", self.standard_error_of_regression_slope);
         info!("SE(alpha-hat)....................{}", self.standard_error_of_regression_intercept);
+        info!("t-score (coefficient)............{}", self.t_score_coefficient);
+        info!("t-score (intercept)..............{}", self.t_score_intercept);
         info!("Observed Values (Y_i)............{:?}", self.data_y.data);
         info!("Fitted Values (Y-hat)............{:?}", self.fitted_values);
         info!("Residuals (Y_i - Y-hat)..........{:?}", self.residuals);
         info!("Sum of Squared Totals............{}", self.sum_of_squares_total);
         info!("Sum of Squared Errors............{}", self.sum_of_squares_error);
         info!("Explained Sum of Squares.........{}", self.explained_sum_of_squares);
+        info!("Mean Square Regression...........{}", self.mean_square_regression);
         info!("Mean Square Error................{}", self.mean_square_error);
         info!("Residual Standard Error..........{}", self.residual_standard_error);
         info!("R^2..............................{}", self.coefficient_of_determination);
         info!("R^2 adjusted.....................{}", self.coefficient_of_determination_adjusted);
+        info!("F-statistic......................{}", self.one_way_anova_f_statistic);
         info!("{}", logging::format_title(""));
     }
 }
