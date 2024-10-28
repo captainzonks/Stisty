@@ -1,7 +1,7 @@
 use anyhow::{Error, Result};
 use log::info;
 use crate::data_types::data_array::DataArray;
-use crate::data_types::relationship::Relationship;
+use crate::data_types::simple_linear_regression::SimpleLinearRegression;
 use crate::logging;
 
 #[derive(Default, Debug)]
@@ -12,14 +12,14 @@ pub struct MultipleRegression {
     pub x_data_arrays: Vec<DataArray>,
     pub y_data_array: DataArray,
 
-    pub data_relationships: Vec<Relationship>,
+    pub data_relationships: Vec<SimpleLinearRegression>,
 
     pub group_means: Vec<f64>,
     pub grand_mean: f64,
 
     pub sum_of_squares_between_groups: f64, // SSB
     pub sum_of_squares_within_groups: f64, // SSW
-    pub sum_of_squared_residuals: f64, // SSR
+    pub sum_of_squares_error: f64, // SSE
     pub sum_of_squares_total: f64, // SST
     pub explained_sum_of_squares: f64, // ESS (or sum of squares due to regression)
 
@@ -68,7 +68,7 @@ impl MultipleRegression {
 
         // create an array of relationships of all x data to y data
         for x_data_array in new_multiple_regression.x_data_arrays.iter() {
-            new_multiple_regression.data_relationships.push(Relationship::new(
+            new_multiple_regression.data_relationships.push(SimpleLinearRegression::new(
                 String::from(x_data_array.name.clone() + " vs " + new_multiple_regression.y_data_array.name.as_str()),
                 &x_data_array,
                 &new_multiple_regression.y_data_array)?
@@ -93,10 +93,10 @@ impl MultipleRegression {
         new_multiple_regression.grand_mean = new_multiple_regression._sum_of_all_data_points_in_all_groups
             / new_multiple_regression.n as f64;
 
-        // SSE (or SSR) = sum of squared residuals
+        // SSE (or SSR) = sum of squares errors (or residuals)
         for relationship in new_multiple_regression.data_relationships.iter() {
             for residual in relationship.residuals.iter() {
-                new_multiple_regression.sum_of_squared_residuals +=
+                new_multiple_regression.sum_of_squares_error +=
                     f64::powi(*residual, 2);
             }
             // ESS = sum of squares of fitted values minus the y_mean
@@ -105,7 +105,7 @@ impl MultipleRegression {
                     f64::powi(fitted - relationship.data_y.mean, 2);
             }
             // SST = sum of squares of observed values minus the y_mean
-            for observed in relationship.observed_values.iter() {
+            for observed in relationship.data_y.data.iter() {
                 new_multiple_regression.sum_of_squares_total +=
                     f64::powi(observed - relationship.data_y.mean, 2);
             }
@@ -146,7 +146,7 @@ impl MultipleRegression {
             / new_multiple_regression.degrees_of_freedom_between_groups as f64;
 
         // Mean Square Error (MSE): SSE / dfW
-        new_multiple_regression.mean_square_error = new_multiple_regression.sum_of_squared_residuals
+        new_multiple_regression.mean_square_error = new_multiple_regression.sum_of_squares_error
             / new_multiple_regression.degrees_of_freedom_within_groups as f64;
 
         // Mean Square Regression (MSR): dividing the regression sum of squares by its degrees of freedom
@@ -154,7 +154,7 @@ impl MultipleRegression {
             / new_multiple_regression.p as f64;
 
         // Root Mean Square Error: SSE / n
-        new_multiple_regression.root_mean_square_error = new_multiple_regression.sum_of_squared_residuals
+        new_multiple_regression.root_mean_square_error = new_multiple_regression.sum_of_squares_error
             / new_multiple_regression.n as f64;
 
         // F = MSB / MSE
@@ -169,7 +169,7 @@ impl MultipleRegression {
 
         // R^2, coefficient of multiple determination = SSR/SST
         new_multiple_regression.coefficient_of_multiple_determination =
-            new_multiple_regression.sum_of_squared_residuals
+            new_multiple_regression.sum_of_squares_error
                 / new_multiple_regression.sum_of_squares_total;
 
         // R^2 adjusted = 1 - ((n - 1) / (n - p - 1)) * (1 - R^2)
@@ -187,7 +187,7 @@ impl MultipleRegression {
         info!("Grand Mean....................{}", self.grand_mean);
         info!("SST...........................{}", self.sum_of_squares_total);
         info!("SSB...........................{}", self.sum_of_squares_between_groups);
-        info!("SSE...........................{}", self.sum_of_squared_residuals);
+        info!("SSE...........................{}", self.sum_of_squares_error);
         info!("ESS...........................{}", self.explained_sum_of_squares);
         info!("dfB...........................{}", self.degrees_of_freedom_between_groups);
         info!("dfW...........................{}", self.degrees_of_freedom_within_groups);
