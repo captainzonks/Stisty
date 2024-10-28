@@ -10,8 +10,8 @@ use crate::logging;
 #[derive(Default, Debug, Clone)]
 pub struct SimpleLinearRegression {
     pub name: String,
-    pub n: i32,
-    pub p: i32, // this will always be 1 in a simple linear regression with 1 regressor
+    pub n: f64,
+    pub p: f64, // this will always be 1.0 in a simple linear regression with 1.0 regressor
 
     pub data_x: DataArray,
     pub data_y: DataArray,
@@ -40,9 +40,10 @@ pub struct SimpleLinearRegression {
     pub explained_sum_of_squares: f64, // ESS
 
     pub mean_square_error: f64, // MSE = SSE / (n - p); standard error of the estimate
+    pub residual_standard_error: f64, // sqrt((1/(n - p - 1)) * SSE)
 
-    pub coefficient_of_multiple_determination: f64, // R^2
-    pub coefficient_of_multiple_determination_adjusted: f64, // R^2 adjusted
+    pub coefficient_of_determination: f64, // R^2
+    pub coefficient_of_determination_adjusted: f64, // R^2 adjusted
 
     // R^2 = proportion of observed y variation that can be explained by the simple linear regression model
 }
@@ -51,8 +52,8 @@ impl SimpleLinearRegression {
     pub fn new(name: String, data_x: &DataArray, data_y: &DataArray) -> Result<SimpleLinearRegression, Error> {
         let mut new_relationship: SimpleLinearRegression = SimpleLinearRegression::default();
         new_relationship.name = name;
-        new_relationship.n = data_x.data.len() as i32;
-        new_relationship.p = 1; // simple linear regression has only one regressor
+        new_relationship.n = data_x.data.len() as f64;
+        new_relationship.p = 1.0; // simple linear regression has only one regressor
 
         new_relationship.data_x = data_x.clone();
         new_relationship.data_y = data_y.clone();
@@ -71,7 +72,7 @@ impl SimpleLinearRegression {
 
         // Covariance = (sum(data_x's deviations * data_y's deviations)) / (N (- 1, for Bessel's Correction))
         new_relationship.covariance = new_relationship.sum_of_product_of_deviations
-            / (new_relationship.data_x.data.len() as f64
+            / (new_relationship.n
             - if new_relationship.data_x.population.unwrap_or_default() { 0.0 } else { 1.0 });
 
         // Pearson r = covariance / (data_x's sd * data_y's sd)
@@ -80,7 +81,7 @@ impl SimpleLinearRegression {
 
         // t-score (from Pearson r) = r * sqrt(N - 2) / sqrt(1 - r^2)
         new_relationship.t_score = new_relationship.pearson_r
-            * f64::sqrt(new_relationship.data_x.data.len() as f64 - 2.0)
+            * f64::sqrt(new_relationship.n - new_relationship.p - 1.0)
             / f64::sqrt(1.0 - f64::powi(new_relationship.pearson_r, 2));
 
         // y-hat = beta(x) + alpha
@@ -127,35 +128,42 @@ impl SimpleLinearRegression {
             .map(|fitted_y| f64::powi(fitted_y - new_relationship.data_y.mean, 2))
             .sum::<f64>();
 
-        // calculate the mean square error
-        // MSE = SSE / (n - p - 1)
+        // MSE = SSE / (n)
         new_relationship.mean_square_error = new_relationship.sum_of_squares_error
-            / (new_relationship.n - new_relationship.p - 1) as f64;
+            / new_relationship.n;
 
-        // SE(Beta-hat) = sqrt((1/(n-p-1)*MSE)/SSx)
+        // RSE = sqrt((1/(n - p - 1)) * SSE)
+        new_relationship.residual_standard_error =
+            f64::sqrt((1.0 / (new_relationship.n - new_relationship.p - 1.0))
+                * new_relationship.sum_of_squares_error);
+
+        // SE(Beta-hat) = sqrt((1/(n-p-1))*(MSE/SSx))
         new_relationship.standard_error_of_regression_slope =
-            f64::sqrt(((1 / new_relationship.n - new_relationship.p - 1) as f64
-                * new_relationship.mean_square_error)
-                / new_relationship.data_x.sum_of_squares);
+            f64::sqrt((1.0 / (new_relationship.n - new_relationship.p - 1.0))
+                * (new_relationship.sum_of_squares_error
+                / new_relationship.data_x.sum_of_squares));
 
         // SE(alpha-hat) = SE(Beta-hat) * sqrt((1/n)*sum(x^2))
         new_relationship.standard_error_of_regression_intercept =
             new_relationship.standard_error_of_regression_slope
-                * f64::sqrt((1 / new_relationship.n) as f64
-                * new_relationship.data_x.data.iter().sum::<f64>());
+                * f64::sqrt((1.0 / new_relationship.n)
+                * new_relationship.data_x.data.iter()
+                .map(|x| f64::powi(*x, 2))
+                .collect::<Vec<f64>>().iter().sum::<f64>());
 
 
         // ESS, cheaper method (and perhaps not completely accurate)
         // new_relationship.explained_sum_of_squares = new_relationship.sum_of_squares_total - new_relationship.sum_of_squares_error;
 
-        // coefficient of multiple determination, or R^2 (ESS/SST)
-        new_relationship.coefficient_of_multiple_determination = new_relationship.explained_sum_of_squares
-            / new_relationship.sum_of_squares_total;
+        // coefficient of multiple determination, or R^2 = ESS/SST
+        new_relationship.coefficient_of_determination =
+            new_relationship.explained_sum_of_squares
+                / new_relationship.sum_of_squares_total;
 
-        // R^2 adjusted = 1 - ((n - 1) / (n - p - 1)) * (1 - R^2)
-        new_relationship.coefficient_of_multiple_determination_adjusted =
-            1.0 - ((new_relationship.n - 1) / (new_relationship.n - new_relationship.p - 1)) as f64
-                * (new_relationship.explained_sum_of_squares / new_relationship.sum_of_squares_total);
+        // R^2 adjusted = 1 - (1 - R^2) * ((n - 1) / (n - p - 1))
+        new_relationship.coefficient_of_determination_adjusted =
+            1.0 - ((1.0 - new_relationship.coefficient_of_determination) *
+                ((new_relationship.n - 1.0) / (new_relationship.n - new_relationship.p - 1.0)));
 
 
         Ok(new_relationship)
@@ -181,7 +189,7 @@ impl SimpleLinearRegression {
         info!("{}", logging::format_title(&*self.name));
         info!("n................................{}", self.n);
         info!("p................................{}", self.p);
-        info!("df...............................{}", self.n - self.p - 1);
+        info!("df...............................{}", self.n - self.p - 1.0);
         info!("Data X mean......................{}", self.data_x.mean);
         info!("Data Y mean......................{}", self.data_y.mean);
         info!("Sum of Product of Z-Scores.......{}", self.sum_of_product_of_z_scores);
@@ -202,8 +210,9 @@ impl SimpleLinearRegression {
         info!("Sum of Squared Errors............{}", self.sum_of_squares_error);
         info!("Explained Sum of Squares.........{}", self.explained_sum_of_squares);
         info!("Mean Square Error................{}", self.mean_square_error);
-        info!("R^2..............................{}", self.coefficient_of_multiple_determination);
-        info!("R^2 adjusted.....................{}", self.coefficient_of_multiple_determination_adjusted);
+        info!("Residual Standard Error..........{}", self.residual_standard_error);
+        info!("R^2..............................{}", self.coefficient_of_determination);
+        info!("R^2 adjusted.....................{}", self.coefficient_of_determination_adjusted);
         info!("{}", logging::format_title(""));
     }
 }
