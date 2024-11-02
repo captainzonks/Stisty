@@ -1,4 +1,4 @@
-use anyhow::Error;
+use anyhow::{Result, Error};
 
 pub trait Convert<T> {
     fn convert(x: T) -> Self;
@@ -38,7 +38,7 @@ impl Convert<String> for f64 {
         }
     }
 }
-pub fn convert_slice_to_f64<T: Copy>(raw: &[T], offset: f64, scale: f64) -> anyhow::Result<Vec<f64>, Error>
+pub fn convert_slice_to_f64<T: Copy>(raw: &[T], offset: f64, scale: f64) -> Result<Vec<f64>, Error>
 where
     f64: Convert<T>,
 {
