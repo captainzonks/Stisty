@@ -61,7 +61,7 @@ fn main() -> Result<()> {
 
     // run_menudo_test().expect("Menudo test failed.");
     // run_months_ice_cream().expect("Months ice cream test failed.");
-    // run_spotify_streaming().expect("Spotify test failed.");
+    run_spotify_streaming().expect("Spotify test failed.");
     // run_stress_levels().expect("Stress levels test failed.");
     // run_student_boredom().expect("Student boredom test failed.");
     // run_soda_bathroom().expect("Lab 7 failed");
@@ -69,8 +69,9 @@ fn main() -> Result<()> {
     // run_caffeine_sleep().expect("Sleep caffeine test failed");
     // run_halloween_candy().expect("Halloween candy test failed");
     // run_exam_2().expect("exam 2 failed");
-    run_exam_2_followup().expect("exam 2 followup failed");
+    // run_exam_2_followup().expect("exam 2 followup failed");
     // run_superheroes().expect("superheroes failed");
+    // run_tinder_test().expect("Tinder test failed");
 
     info!("{}", format_title(&*""));
 

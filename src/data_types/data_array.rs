@@ -55,24 +55,19 @@ impl DataArray {
 
     // mean = sum(x_i) / N
     fn calculate_mean(&mut self) {
-        let mut sum = 0.0;
-        for datum in self.data.iter() {
-            sum += datum;
-        };
-        self.mean = sum / self.data.len() as f64;
+        self.mean = self.data.iter().sum::<f64>() / self.data.len() as f64;
     }
 
     // ss = sum((x_i - mean)^2)
     fn calculate_sum_of_squares(&mut self) {
-        for datum in self.data.iter() {
-            self.sum_of_squares += (datum - self.mean).powi(2);
-        }
+        self.sum_of_squares = self.data.iter()
+            .map(|x| f64::powi(x - self.mean, 2))
+            .sum::<f64>();
     }
 
     fn calculate_deviations(&mut self) {
-        for datum in self.data.iter() {
-            self.deviations.push(datum - self.mean);
-        }
+        self.deviations = self.data.iter()
+            .map(|x| x - self.mean).collect();
     }
 
     // s^2 = ss / (N - 1)
@@ -89,9 +84,8 @@ impl DataArray {
 
     // z = x / s
     fn calculate_z_scores(&mut self) {
-        for datum in self.data.iter() {
-            self.z_scores.push(datum / self.standard_deviation);
-        }
+        self.z_scores = self.data.iter()
+            .map(|x| x / self.standard_deviation).collect();
     }
 
     pub fn get_probability_density(&self, x: f64) -> Result<f64, Error> {
@@ -102,12 +96,14 @@ impl DataArray {
 
     // raw = deviation + mean
     pub fn get_raw_scores_from_deviations(&self) -> Result<Vec<f64>, Error> {
-        let mut raw_scores = Vec::with_capacity(self.deviations.len());
-        for deviation in self.deviations.iter() {
-            raw_scores.push(*deviation + self.mean);
-        }
+        Ok(
+            self.deviations.iter()
+            .map(|x| *x + self.mean).collect()
+        )
+    }
 
-        Ok(raw_scores)
+    pub fn get_single_t(&self, mu: f64) -> Result<f64, Error> {
+        Ok((self.mean - mu) / (self.standard_deviation / f64::sqrt(self.data.len() as f64)))
     }
 
     // pub fn run_graph_test(&self) {

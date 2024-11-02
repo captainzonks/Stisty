@@ -13,6 +13,7 @@ use crate::functions::csv::import_csv_data;
 use crate::functions::stats_math;
 use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
 use crate::functions::stats::get_data_stats;
+use crate::graphing::Graph;
 // use crate::graphing::graph_test;
 
 pub fn run_menudo_test() -> Result<(), Error> {
@@ -118,16 +119,18 @@ pub fn run_spotify_streaming() -> Result<(), Error> {
                                                                    false)?;
     spotify_total_playlists_data_array.print_data();
     let spotify_total_streams_data_array = get_data_stats::<i64>(&spotify_csv_data,
-                                                                 String::from("Total Playlists Count"),
+                                                                 String::from("Total Stream Count"),
                                                                  8,
                                                                  false,
                                                                  false)?;
     spotify_total_streams_data_array.print_data();
-    let spotify_playlists_vs_streams_relationship = SimpleLinearRegression::new(String::from("Spotify Playlists vs Streams"),
+    let spotify_playlists_vs_streams_relationship = SimpleLinearRegression::new(String::from("Spotify Playlists vs Stream Count"),
                                                                                 &spotify_total_playlists_data_array,
                                                                                 &spotify_total_streams_data_array)?;
     spotify_playlists_vs_streams_relationship.print_relationship();
-    // spotify_total_streams_data_array.run_graph_test();
+    spotify_playlists_vs_streams_relationship.graph()?;
+    // graph_test_simple_linear_regression(String::from("Spotify Playlists vs Stream Count"),
+    //                                     &spotify_playlists_vs_streams_relationship)?;
     Ok(())
 }
 
@@ -416,6 +419,8 @@ pub fn run_exam_2_followup() -> Result<(), Error> {
     // info!("0 hrs of homework = {} bowls of cereal", hours_of_homework_cereal_relationship.get_y_hat(0.0));
     // info!("2 hrs of homework = {} bowls of cereal", hours_of_homework_cereal_relationship.get_y_hat(2.0));
 
+    // graph_test_simple_linear_regression(String::from("Siblings vs Hours of Homework"), &siblings_hours_of_homework_relationship)?;
+
     Ok(())
 }
 
@@ -466,6 +471,31 @@ pub fn run_superheroes() -> Result<(), Error> {
 
     // info!("10 Nemeses = ${} in damage", nemeses_vs_damage_after.get_y_hat(10.0));
     // info!("10 Nemeses = {} Bottles of Baby Powder", nemeses_vs_baby_powder.get_y_hat(10.0));
+
+    Ok(())
+}
+
+pub fn run_tinder_test() -> Result<(), Error> {
+    let tinder_data_path = Path::new("./csv-files/tinder.csv");
+    let tinder_csv_data = import_csv_data(tinder_data_path, None, None)?;
+
+    let tinder_data_array = get_data_stats::<i32>(&tinder_csv_data, String::from("Tinder"), 1, false, false)?;
+
+    tinder_data_array.print_data();
+    info!("t-statistic, with mu of 35: {}", tinder_data_array.get_single_t(35.0)?);
+
+    Ok(())
+}
+pub fn run_homework_test() -> Result<(), Error> {
+    let homework_data_path = Path::new("./csv-files/homework.csv");
+    let homework_csv_data = import_csv_data(homework_data_path, None, None)?;
+
+    let money_before_data_array = get_data_stats::<i32>(&homework_csv_data, String::from("Money Before"), 1, false, false)?;
+    let money_after_data_array = get_data_stats::<i32>(&homework_csv_data, String::from("Money After"), 2, false, false)?;
+    let free_before_data_array = get_data_stats::<i32>(&homework_csv_data, String::from("Free Time Before"), 3, false, false)?;
+    let free_after_data_array = get_data_stats::<i32>(&homework_csv_data, String::from("Free Time After"), 4, false, false)?;
+
+    
 
     Ok(())
 }
