@@ -3,10 +3,7 @@ mod error_types;
 mod functions;
 mod logging;
 mod tests;
-mod graphing;
 
-use std::error::Error;
-use std::fmt::{Debug, Display};
 use anyhow::Result;
 // ratatui modules
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};

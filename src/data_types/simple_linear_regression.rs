@@ -242,7 +242,7 @@ impl SimpleLinearRegression {
         info!("Data Y mean......................{}", self.data_y.mean);
         info!("Sum of Product of Z-Scores.......{}", self.sum_of_product_of_z_scores);
         info!("Sum of Product of Deviations.....{}", self.sum_of_product_of_deviations);
-        info!("Differences......................{:?}", self.differences);
+        // info!("Differences......................{:?}", self.differences);
         info!("Sum of Differences...............{}", self.sum_of_differences);
         info!("Mean of Differences..............{}", self.mean_of_differences);
         info!("Variance of Differences..........{}", self.variance_of_differences);
