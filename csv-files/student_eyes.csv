@@ -1,0 +1,25 @@
+Participant,Eyewear,Employment,Education,Sleep,Screentime,Liking for Stranger Things,Liking for Friends
+1,Glasses,Student,High School Diploma,8,5,8,7
+2,Glasses,Working,No diploma,5,20,7,4
+3,Glasses,Student,High School Diploma,8,4,7,8
+4,Glasses,Working,No diploma,7,21,9,3
+5,Glasses,Student,High School Diploma,8,6,8,8
+6,Glasses,Student,High School Diploma,9,4,8,7
+7,Glasses,Working,No diploma,8,23,7,3
+8,Glasses,Working,No diploma,7,22,8,8
+9,Contacts,Student,High School Diploma,7,6,7,2
+10,Contacts,Working,No diploma,6,19,7,7
+11,Contacts,Student,High School Diploma,7,4,8,8
+12,Contacts,Working,No diploma,6,19,9,3
+13,Contacts,Student,No diploma,5,5,8,2
+14,Contacts,Working,High School Diploma,5,5,7,8
+15,Contacts,Working,High School Diploma,5,4,8,9
+16,Contacts,Student,No diploma,5,3,9,2
+17,None,Student,No diploma,7,2,8,3
+18,None,Working,High School Diploma,7,4,7,8
+19,None,Student,No diploma,4,3,7,2
+20,None,Working,High School Diploma,4,5,8,8
+21,None,Student,No diploma,5,5,7,3
+22,None,Working,High School Diploma,5,6,8,9
+23,None,Working,High School Diploma,5,4,9,8
+24,None,Student,No diploma,5,4,7,4

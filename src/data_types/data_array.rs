@@ -1,9 +1,7 @@
 use anyhow::{Error, Result};
-use log::{debug, info};
+use log::info;
 use std::f64::consts::{E, PI};
 use crate::functions::convert::{convert_slice_to_f64, Convert};
-use crate::functions::stats_math::standard_deviation;
-// use crate::graphing::graph_test;
 use crate::logging;
 
 #[derive(Default, Debug, Clone)]

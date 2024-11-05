@@ -1,7 +1,7 @@
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 
-use charming::{component::Axis, series::Scatter, series::Line, Chart, HtmlRenderer};
 use charming::element::AxisType;
+use charming::{component::Axis, Chart, HtmlRenderer};
 
 pub fn create_chart(x_type: AxisType, y_type: AxisType) -> Result<Chart, Error> {
     let chart = Chart::new()
@@ -12,21 +12,8 @@ pub fn create_chart(x_type: AxisType, y_type: AxisType) -> Result<Chart, Error> 
     Ok(chart)
 }
 
-pub fn add_scatter_data(mut chart: Chart, data: Vec<Vec<f64>>) -> Result<Chart, Error> {
-    chart = chart.series(Scatter::new().symbol_size(20).data(data));
-    Ok(chart)
-}
-
-pub fn add_line_data(mut chart: Chart, line_data: Vec<Vec<f64>>) -> Result<Chart, Error> {
-    chart = chart.series(Line::new().data(line_data));
-    Ok(chart)
-}
-
-pub fn render_chart(mut chart: Chart, title: String, image_width: u64, image_height: u64) -> Result<(), Error> {
-    HtmlRenderer::new(String::from(title), image_width, image_height).save(&mut chart, "./graphics/scatter.html")?;
+pub fn render_chart(chart: &Chart, title: String, image_width: u64, image_height: u64) -> Result<(), Error> {
+    let file_name = title.replace(" ", "-");
+    HtmlRenderer::new(title, image_width, image_height).save(&chart, "./graphics/".to_owned() + &*file_name + ".html")?;
     Ok(())
-}
-
-pub trait Graph {
-    fn graph(&self) -> Result<(), Error>;
 }

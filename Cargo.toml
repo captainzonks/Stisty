@@ -12,6 +12,5 @@ ratatui = "0.29.0"
 crossterm = "0.28.1"
 anyhow = "1.0.89"
 thiserror = "1.0.64"
-plotters = "0.3.7"
 charming = { version = "0.4.0", features = ["html"] }
 

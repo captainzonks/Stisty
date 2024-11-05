@@ -1,12 +1,6 @@
-use std::iter::Sum;
 use anyhow::{Error, Result};
-use charming::element::AxisType;
 use log::info;
 use crate::data_types::data_array::DataArray;
-use crate::error_types::CSVError;
-use crate::functions::convert::Convert;
-use crate::functions::stats_math::{mean, standard_deviation};
-use crate::graphing::{add_line_data, add_scatter_data, create_chart, render_chart, Graph};
 use crate::logging;
 
 #[derive(Default, Debug, Clone)]
@@ -20,7 +14,8 @@ pub struct SimpleLinearRegression {
 
     pub differences: Vec<f64>,
     pub sum_of_differences: f64,
-    pub sum_of_squares_of_differences: f64,
+    pub mean_of_differences: f64,
+    pub sum_of_squares_differences: f64,
     pub variance_of_differences: f64,
     pub s_sub_d_bar: f64,
 
@@ -71,21 +66,24 @@ impl SimpleLinearRegression {
         new_relationship.data_y = data_y.clone();
 
         // Differences of Data
-        let mut iter = new_relationship.data_y.data.iter();
-        new_relationship.differences = new_relationship.data_x.data.iter()
+        let mut iter = new_relationship.data_x.data.iter();
+        new_relationship.differences = new_relationship.data_y.data.iter()
             .map(|x| x - iter.next().unwrap())
             .collect();
 
         // Sum of Differences
         new_relationship.sum_of_differences = new_relationship.differences.iter().sum::<f64>();
 
+        // Mean of the Differences
+        new_relationship.mean_of_differences = new_relationship.sum_of_differences / new_relationship.n;
+
         // Sum of Squares of Differences
-        new_relationship.sum_of_squares_of_differences = new_relationship.differences.iter()
-            .map(|x| f64::powi(*x, 2))
+        new_relationship.sum_of_squares_differences = new_relationship.differences.iter()
+            .map(|x| f64::powi(*x - new_relationship.mean_of_differences, 2))
             .sum::<f64>();
 
         // Variance of Differences
-        new_relationship.variance_of_differences = new_relationship.sum_of_squares_of_differences
+        new_relationship.variance_of_differences = new_relationship.sum_of_squares_differences
             / (new_relationship.n
             - if new_relationship.data_x.population.unwrap_or_default() { 0.0 } else { 1.0 });
 
@@ -244,6 +242,11 @@ impl SimpleLinearRegression {
         info!("Data Y mean......................{}", self.data_y.mean);
         info!("Sum of Product of Z-Scores.......{}", self.sum_of_product_of_z_scores);
         info!("Sum of Product of Deviations.....{}", self.sum_of_product_of_deviations);
+        info!("Differences......................{:?}", self.differences);
+        info!("Sum of Differences...............{}", self.sum_of_differences);
+        info!("Mean of Differences..............{}", self.mean_of_differences);
+        info!("Variance of Differences..........{}", self.variance_of_differences);
+        info!("S sub D-bar......................{}", self.s_sub_d_bar);
         info!("Covariance.......................{}", self.covariance);
         info!("Pearson r........................{}", self.pearson_r);
         info!("Slope (Beta).....................{}", self.slope_beta);
@@ -258,6 +261,7 @@ impl SimpleLinearRegression {
         // info!("Observed Values (Y_i)............{:?}", self.data_y.data);
         // info!("Fitted Values (Y-hat)............{:?}", self.fitted_values);
         // info!("Residuals (Y_i - Y-hat)..........{:?}", self.residuals);
+        info!("Sum of Squared Differences.......{}", self.sum_of_squares_differences);
         info!("Sum of Squared Totals............{}", self.sum_of_squares_total);
         info!("Sum of Squared Errors............{}", self.sum_of_squares_error);
         info!("Explained Sum of Squares.........{}", self.explained_sum_of_squares);
@@ -268,25 +272,5 @@ impl SimpleLinearRegression {
         info!("R^2 adjusted.....................{}", self.coefficient_of_determination_adjusted);
         info!("F-statistic......................{}", self.one_way_anova_f_statistic);
         info!("{}", logging::format_title(""));
-    }
-}
-
-impl Graph for SimpleLinearRegression {
-    fn graph(&self) -> Result<(), Error> {
-        let mut data_y_iter = self.data_y.data.clone().into_iter();
-        let scatter_data = self.data_x.data.clone().into_iter()
-            .map(|x: f64| vec![x, data_y_iter.next().unwrap()])
-            .collect::<Vec<Vec<f64>>>();
-        data_y_iter = self.fitted_values.clone().into_iter();
-        let line_data = self.data_x.data.clone().into_iter()
-            .map(|x: f64| vec![x, data_y_iter.next().unwrap()])
-            .collect::<Vec<Vec<f64>>>();
-
-        let mut chart = create_chart(AxisType::Value, AxisType::Value)?;
-        chart = add_scatter_data(chart, scatter_data)?;
-        chart = add_line_data(chart, line_data)?;
-        render_chart(chart, String::from("Simple Linear Graph"), 1000, 800)?;
-
-        Ok(())
     }
 }

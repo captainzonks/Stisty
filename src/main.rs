@@ -25,7 +25,6 @@ use ratatui::{
 
 use std::io;
 use log::info;
-// use crate::graphing::graph_test;
 use crate::logging::{format_title, setup_logger};
 use crate::tests::tests::*;
 
@@ -72,6 +71,8 @@ fn main() -> Result<()> {
     // run_exam_2_followup().expect("exam 2 followup failed");
     // run_superheroes().expect("superheroes failed");
     // run_tinder_test().expect("Tinder test failed");
+    // run_gpa_test().expect("GPA test failed");
+    // run_student_eyes_test().expect("student eyes test failed");
 
     info!("{}", format_title(&*""));
 
