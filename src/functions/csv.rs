@@ -1,16 +1,17 @@
-use std::any::type_name;
-use std::backtrace::Backtrace;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::num::{ParseFloatError, ParseIntError};
+use crate::data_types::data_array::DataArray;
+use crate::error_types::{CSVError, CSVErrorKind};
+use crate::functions::convert::Convert;
+use anyhow::{Error, Result};
+use log::info;
+use std::fmt::Debug;
 use std::path::Path;
 use std::str::FromStr;
-use std::string::ParseError;
-use log::{error, info};
-use anyhow::{anyhow, Context, Result};
-use crate::error_types::{CSVError, CSVErrorKind};
 
-pub fn import_csv_data(file_path: &Path, has_headers: Option<bool>, delimiter: Option<u8>) -> Result<CSVData, anyhow::Error> {
+pub fn import_csv_data(
+    file_path: &Path,
+    has_headers: Option<bool>,
+    delimiter: Option<u8>,
+) -> Result<CSVData, Error> {
     let mut reader_builder = csv::ReaderBuilder::new();
 
     match has_headers {
@@ -19,7 +20,7 @@ pub fn import_csv_data(file_path: &Path, has_headers: Option<bool>, delimiter: O
     };
     match delimiter {
         Some(delimiter) => reader_builder.delimiter(delimiter),
-        _ => reader_builder.delimiter(b',')
+        _ => reader_builder.delimiter(b','),
     };
 
     let mut reader = reader_builder.from_path(file_path)?;
@@ -50,35 +51,83 @@ impl CSVData {
     /// Retrieves a single datum from SampleData's vector as if it were a 2D array.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
-    pub fn get_datum<T>(&self, row: usize, column: usize, one_based_index: Option<bool>) -> Result<T, CSVError<T>>
+    pub fn get_datum<T>(
+        &self,
+        row: usize,
+        column: usize,
+        one_based_index: Option<bool>,
+    ) -> Result<T, CSVError<T>>
     where
         T: FromStr + Clone + Debug,
     {
-        let one: usize = if one_based_index.unwrap_or_default() { 1 } else { 0 };
+        let one: usize = if one_based_index.unwrap_or_default() {
+            1
+        } else {
+            0
+        };
         // row_len * row + column (row major)
         let extracted_string = &self.data[self.row_length * (row - one) + (column - one)];
         T::from_str(extracted_string)
-            .map_err(|error| CSVErrorKind::Generic { source: error })
-            .map_err(|error| CSVError { row, column, value: String::from(extracted_string), kind: error })
+            .map_err(|error| CSVErrorKind::DataExtraction { source: error })
+            .map_err(|error| CSVError {
+                row,
+                column,
+                value: String::from(extracted_string),
+                kind: error,
+            })
     }
 
     /// Retrieves a column of data from CSVData's data vector.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
-    pub fn get_col<T>(&self, column: usize, one_based_index: Option<bool>) -> Result<Vec<T>, CSVError<T>>
+    pub fn get_col<T>(
+        &self,
+        column: usize,
+        one_based_index: Option<bool>,
+    ) -> Result<Vec<T>, CSVError<T>>
     where
         T: FromStr + Clone + Debug,
     {
-        info!("Retrieving column {} from CSV using {}-based indexing", column, if one_based_index.unwrap_or_default() { 1 } else { 0 });
-        let one: usize = if one_based_index.unwrap_or_default() { 1 } else { 0 };
+        info!(
+            "Retrieving column {} from CSV using {}-based indexing",
+            column,
+            if one_based_index.unwrap_or_default() {
+                1
+            } else {
+                0
+            }
+        );
+        let initial_index: usize = if one_based_index.unwrap_or_default() {
+            1
+        } else {
+            0
+        };
         let mut col: Vec<T> = Vec::with_capacity(self.data.len());
 
-        for i in one..self.column_count + one {
-            if let datum = self.get_datum::<T>(i, column, one_based_index)?
-            {
-                col.push(datum)
-            }
+        for i in initial_index..self.column_count + initial_index {
+            col.push(self.get_datum::<T>(i, column, one_based_index)?)
         }
         Ok(col)
+    }
+
+    // Extracts a column out of the CSV data as a DataArray object
+    pub fn get_column_as_data_array<T>(
+        &self,
+        data_name: String,
+        column: usize,
+        one_based_index: bool,
+        population: bool,
+    ) -> Result<DataArray, Error>
+    where
+        T: FromStr + Clone + Copy + Debug + 'static,
+        <T as FromStr>::Err: std::error::Error + Send + Sync + 'static,
+        f64: Convert<T>,
+    {
+        Ok(DataArray::new(
+            data_name,
+            self.get_col::<T>(column, Some(one_based_index))
+                .map_err(|error| <CSVError<T>>::from(error))?,
+            Some(population),
+        )?)
     }
 }
