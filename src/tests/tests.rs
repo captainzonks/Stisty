@@ -1,14 +1,10 @@
-use crate::data_types::data_array::data::{CategoricalDataArray, ContinuousDataArray, Data};
-use crate::data_types::data_array::sample_data::SampleData;
+use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray, Data};
 // use crate::data_types::multiple_regression::MultipleRegression;
-use crate::data_types::data_relationship::{
-    IndependentGroupsT, PairedSamplesT, SingleSampleT, Statistic,
-};
+use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT};
 use crate::functions::csv::import_csv_data;
 // use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
 use anyhow::{Error, Result};
 // use charming::series::{Line, Scatter};
-use log::{error, info};
 use std::path::Path;
 
 // pub fn run_menudo_test() -> Result<(), Error> {
@@ -709,28 +705,21 @@ pub fn run_glasses_occupation_likes_test() -> Result<(), Error> {
     let employment_vec = &glasses_occupation_likes_csv_data.get_column::<String>(2, Some(false))?;
 
     let sleep_data_array =
-        SampleData::<ContinuousDataArray>::new(String::from("Sleep"), sleep_vec, 4, Some(false))?;
+        ContinuousDataArray::new(String::from("Sleep"), sleep_vec, 4, Some(false))?;
 
-    let employment_data_array = SampleData::<CategoricalDataArray>::new(
-        String::from("Employment"),
-        employment_vec,
-        2,
-        Some(false),
-    )?;
+    let employment_data_array =
+        CategoricalDataArray::new(String::from("Employment"), employment_vec, 2, Some(false))?;
 
     sleep_data_array.print();
     employment_data_array.print();
 
-    let mut employment_sleep_independent_t = IndependentGroupsT::new(
+    let employment_sleep_independent_t = IndependentGroupsT::new(
         String::from("Employment vs Sleep"),
         String::from("Students get more sleep than those who are employed."),
         &employment_data_array,
         &sleep_data_array,
     )?;
 
-    employment_sleep_independent_t
-        .run_statistic()
-        .expect("Employment vs Sleep independent groups t failed to run");
     employment_sleep_independent_t.print();
 
     Ok(())

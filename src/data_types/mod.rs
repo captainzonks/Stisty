@@ -1,3 +1,3 @@
 pub mod data_array;
-pub mod data_relationship;
+pub mod statistics;
 pub mod multiple_regression;

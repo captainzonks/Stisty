@@ -1,13 +1,8 @@
-use crate::data_types::data_array::data::{CategoricalDataArray, ContinuousDataArray};
+use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 use crate::functions::stats_math::{differences, mean, pooled_variance, variance};
 use crate::logging;
 use anyhow::{anyhow, Error};
 use log::info;
-
-pub trait Statistic {
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error>;
-    fn print(self);
-}
 
 #[derive(Debug, Clone)]
 pub struct SingleSampleT<'a> {
@@ -25,6 +20,7 @@ pub struct SingleSampleT<'a> {
     _variance: f64,
     _standard_deviation: f64,
 
+    _statistic_run: bool,
     pub t: f64,
 }
 
@@ -35,7 +31,7 @@ impl<'a> SingleSampleT<'a> {
         data: &'a ContinuousDataArray,
         mu: f64,
     ) -> anyhow::Result<SingleSampleT<'a>, Error> {
-        Ok(SingleSampleT {
+        let mut new_sst = SingleSampleT {
             name,
             description,
             _n: data.data_array.data.len(),
@@ -44,8 +40,32 @@ impl<'a> SingleSampleT<'a> {
             _mu: mu,
             _variance: data.variance,
             _standard_deviation: data.standard_deviation,
+            _statistic_run: false,
             t: 0.0,
-        })
+        };
+
+        new_sst.run_statistic()?;
+
+        Ok(new_sst)
+    }
+
+    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+        info!("...Calculating 'Single Sample t'...");
+        self._n = self._data.data_array.data.len();
+        self._df = self._n - 1;
+        self.t = (self._data.mean - self._mu) / self._standard_deviation;
+        self._statistic_run = true;
+        Ok(())
+    }
+
+    pub fn print(mut self) {
+        if self._statistic_run {
+            info!("Single Sample t = {}", self.t)
+        } else {
+            self.run_statistic()
+                .expect("Error running single sample t test");
+            self.print();
+        }
     }
 }
 
@@ -67,6 +87,7 @@ pub struct PairedSamplesT<'a> {
     _variance_of_differences: f64,
     _s_sub_d_bar: f64,
 
+    _statistic_run: bool,
     pub t: f64,
 }
 
@@ -78,7 +99,7 @@ impl<'a> PairedSamplesT<'a> {
         data_y: &'a ContinuousDataArray,
     ) -> anyhow::Result<PairedSamplesT<'a>, Error> {
         if data_x.data_array.data.len() == data_y.data_array.data.len() {
-            Ok(PairedSamplesT {
+            let mut new_pst = PairedSamplesT {
                 name,
                 description,
                 _n: data_x.data_array.data.len(),
@@ -90,99 +111,18 @@ impl<'a> PairedSamplesT<'a> {
                 _sum_of_squares_differences: 0.0,
                 _variance_of_differences: 0.0,
                 _s_sub_d_bar: 0.0,
+                _statistic_run: false,
                 t: 0.0,
-            })
+            };
+
+            new_pst.run_statistic()?;
+
+            Ok(new_pst)
         } else {
             Err(anyhow!("provided data are not of same length"))
         }
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct IndependentGroupsT<'a> {
-    pub name: String,
-    pub description: String,
-    _level_row_indices: Vec<&'a Vec<usize>>,
-    _df: usize,
-
-    // provided
-    _categorical_data: &'a CategoricalDataArray<'a>,
-    _continuous_data: &'a ContinuousDataArray,
-
-    // calculated
-    _variance_level_1: f64,
-    _variance_level_2: f64,
-    _pooled_variance: f64,
-    _standard_deviation_differences_between_means: f64,
-
-    _statistic_run: bool,
-    pub t: f64,
-}
-
-impl<'a> IndependentGroupsT<'a> {
-    pub fn new(
-        name: String,
-        description: String,
-        categorical_data_array: &'a CategoricalDataArray,
-        continuous_data_array: &'a ContinuousDataArray,
-    ) -> anyhow::Result<IndependentGroupsT<'a>, Error> {
-        let mut new_igt = IndependentGroupsT {
-            name,
-            description,
-            _level_row_indices: vec![],
-            _df: 0,
-            _categorical_data: categorical_data_array,
-            _continuous_data: continuous_data_array,
-            _variance_level_1: 0.0,
-            _variance_level_2: 0.0,
-            _pooled_variance: 0.0,
-            _standard_deviation_differences_between_means: 0.0,
-            _statistic_run: false,
-            t: 0.0,
-        };
-
-        new_igt._level_row_indices = new_igt
-            ._categorical_data
-            .levels
-            .iter()
-            .map(|x| x.1)
-            .collect::<Vec<&'a Vec<usize>>>();
-
-        Ok(new_igt)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ZTest<'a> {
-    pub name: String,
-    pub n: usize,
-    pub df: usize,
-
-    pub data: &'a ContinuousDataArray,
-
-    // provided
-    pub mu: f64,
-    pub standard_deviation: f64,
-
-    // calculated
-    pub z: f64,
-}
-
-impl<'a> Statistic for SingleSampleT<'a> {
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
-        info!("...Calculating 'Single Sample t'...");
-        self._n = self._data.data_array.data.len();
-        self._df = self._n - 1;
-        self.t = (self._data.mean - self._mu) / self._standard_deviation;
-        Ok(())
-    }
-
-    fn print(self) {
-        info!("Single Sample t = {}", self.t)
-    }
-}
-
-impl<'a> Statistic for PairedSamplesT<'a> {
     fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
         if self._data_x.data_array.data.len() == self._data_y.data_array.data.len() {
             info!("...Calculating 'Paired Sample t'...");
@@ -221,6 +161,8 @@ impl<'a> Statistic for PairedSamplesT<'a> {
             self._s_sub_d_bar = f64::sqrt(self._variance_of_differences);
             self.t = (self._mean_of_differences - 0.0) / self._s_sub_d_bar;
 
+            self._statistic_run = true;
+
             Ok(())
         } else {
             Err(anyhow!(
@@ -228,88 +170,134 @@ impl<'a> Statistic for PairedSamplesT<'a> {
             ))
         }
     }
-    fn print(self) {
-        info!("Paired Sample t = {}", self.t)
+
+    pub fn print(mut self) {
+        if self._statistic_run {
+            info!("Paired Sample t = {}", self.t)
+        } else {
+            self.run_statistic()
+                .expect("Error running paired sample t test");
+            self.print();
+        }
     }
 }
 
-impl<'a> Statistic for IndependentGroupsT<'a> {
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
-        if self._categorical_data.levels.keys().len() == 2 {
-            self._level_row_indices = self
+#[derive(Debug, Clone)]
+pub struct IndependentGroupsT<'a> {
+    pub name: String,
+    pub description: String,
+    _level_row_indices: Vec<&'a Vec<usize>>,
+    _df: usize,
+
+    // provided
+    _categorical_data: &'a CategoricalDataArray<'a>,
+    _continuous_data: &'a ContinuousDataArray,
+
+    // calculated
+    _variance_level_1: f64,
+    _variance_level_2: f64,
+    _pooled_variance: f64,
+    _standard_deviation_differences_between_means: f64,
+
+    _statistic_run: bool,
+    pub t: f64,
+}
+
+impl<'a> IndependentGroupsT<'a> {
+    pub fn new(
+        name: String,
+        description: String,
+        categorical_data_array: &'a CategoricalDataArray,
+        continuous_data_array: &'a ContinuousDataArray,
+    ) -> anyhow::Result<IndependentGroupsT<'a>, Error> {
+        if categorical_data_array.levels.keys().len() == 2 {
+            let mut new_igt = IndependentGroupsT {
+                name,
+                description,
+                _level_row_indices: vec![],
+                _df: 0,
+                _categorical_data: categorical_data_array,
+                _continuous_data: continuous_data_array,
+                _variance_level_1: 0.0,
+                _variance_level_2: 0.0,
+                _pooled_variance: 0.0,
+                _standard_deviation_differences_between_means: 0.0,
+                _statistic_run: false,
+                t: 0.0,
+            };
+
+            new_igt._level_row_indices = new_igt
                 ._categorical_data
                 .levels
                 .iter()
                 .map(|x| x.1)
                 .collect::<Vec<&'a Vec<usize>>>();
 
-            self._df = if self._categorical_data.n >= 2 {
-                self._categorical_data.n - 2
-            } else {
-                0
-            };
+            new_igt.run_statistic()?;
 
-            // info!("Categorical Data: {:#?}", self._categorical_data);
-            // info!("Continuous Data: {:#?}", self._continuous_data);
-
-            let filter = |mut i: core::slice::Iter<usize>| {
-                let mut next_val = i.next();
-                // info!("Starting index: {:?}", next_val);
-                return self
-                    ._continuous_data
-                    .data_array
-                    .data
-                    .iter()
-                    .filter_map(|x| -> Option<f64> {
-                        // info!("Index = {}, Value = {}", x.0, x.1);
-                        if next_val.is_some() && x.0 == *next_val.unwrap() {
-                            next_val = i.next();
-                            // info!("Next index: {:?}", next_val);
-                            Some(x.1)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<f64>>();
-            };
-            // info!("All row indices: {:?}", self._level_row_indices);
-            let mut iter = self._level_row_indices[0].iter();
-            let level_1_continuous_data = filter(iter);
-            // info!("Level 1 continuous Data: {:?}", level_1_continuous_data);
-            iter = self._level_row_indices[1].iter();
-            let level_2_continuous_data = filter(iter);
-            // info!("Level 2 continuous Data: {:?}", level_2_continuous_data);
-
-            self._variance_level_1 =
-                variance(&level_1_continuous_data, self._continuous_data.population)?;
-            self._variance_level_2 =
-                variance(&level_2_continuous_data, self._continuous_data.population)?;
-
-            self._pooled_variance = pooled_variance(
-                &level_1_continuous_data,
-                &level_2_continuous_data,
-                Some(self._variance_level_1),
-                Some(self._variance_level_2),
-            )?;
-
-            self._standard_deviation_differences_between_means = f64::sqrt(
-                (self._pooled_variance / self._level_row_indices[0].len() as f64)
-                    + (self._pooled_variance / self._level_row_indices[1].len() as f64),
-            );
-
-            self.t = (mean(&level_1_continuous_data)? - mean(&level_2_continuous_data)?)
-                / self._standard_deviation_differences_between_means;
-
-            self._statistic_run = true;
-
-            Ok(())
+            Ok(new_igt)
         } else {
-            Err(anyhow!(
-    "A categorical variable with two levels is required to run an independent groups t test"
-    ))
+            Err(anyhow!("A categorical variable with two levels is required to run an independent groups t test"))
         }
     }
-    fn print(mut self) {
+
+    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+        self._df = if self._categorical_data.n >= 2 {
+            self._categorical_data.n - 2
+        } else {
+            0
+        };
+
+        let filter = |mut i: core::slice::Iter<usize>| {
+            let mut next_val = i.next();
+            return self
+                ._continuous_data
+                .data_array
+                .data
+                .iter()
+                .filter_map(|x| -> Option<f64> {
+                    if next_val.is_some() && x.0 == *next_val.unwrap() {
+                        next_val = i.next();
+                        Some(x.1)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<f64>>();
+        };
+
+        let mut iter = self._level_row_indices[0].iter();
+        let level_1_continuous_data = filter(iter);
+
+        iter = self._level_row_indices[1].iter();
+        let level_2_continuous_data = filter(iter);
+
+        self._variance_level_1 =
+            variance(&level_1_continuous_data, self._continuous_data.population)?;
+        self._variance_level_2 =
+            variance(&level_2_continuous_data, self._continuous_data.population)?;
+
+        self._pooled_variance = pooled_variance(
+            &level_1_continuous_data,
+            &level_2_continuous_data,
+            Some(self._variance_level_1),
+            Some(self._variance_level_2),
+        )?;
+
+        self._standard_deviation_differences_between_means = f64::sqrt(
+            (self._pooled_variance / self._level_row_indices[0].len() as f64)
+                + (self._pooled_variance / self._level_row_indices[1].len() as f64),
+        );
+
+        self.t = (mean(&level_1_continuous_data)? - mean(&level_2_continuous_data)?)
+            / self._standard_deviation_differences_between_means;
+
+        self._statistic_run = true;
+
+        Ok(())
+    }
+
+    pub fn print(mut self) {
         if self._statistic_run {
             info!("{}", logging::format_title(&*self.name));
             info!("Description: {}", self.description);
@@ -328,6 +316,22 @@ impl<'a> Statistic for IndependentGroupsT<'a> {
             self.print();
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ZTest<'a> {
+    pub name: String,
+    pub n: usize,
+    pub df: usize,
+
+    pub data: &'a ContinuousDataArray,
+
+    // provided
+    pub mu: f64,
+    pub standard_deviation: f64,
+
+    // calculated
+    pub z: f64,
 }
 
 //
