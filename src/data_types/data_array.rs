@@ -1,126 +1,253 @@
-use anyhow::{Error, Result};
-use log::info;
-use std::f64::consts::{E, PI};
-use crate::functions::convert::{convert_slice_to_f64, Convert};
-use crate::logging;
+pub mod data {
+    use crate::logging;
+    use log::info;
+    use std::collections::HashMap;
 
-#[derive(Default, Debug, Clone)]
-pub struct DataArray {
-    pub name: String,
-    pub data: Vec<f64>,
-    pub population: Option<bool>,
-    pub mean: f64,
-    pub sum_of_squares: f64,
-    pub deviations: Vec<f64>,
-    pub variance: f64,
-    pub standard_deviation: f64,
-    pub z_scores: Vec<f64>,
+    pub(in crate::data_types::data_array) mod continuous {
+        #[derive(Clone, Default, Debug)]
+        pub struct DataArray {
+            pub data: Vec<(usize, f64)>,
+        }
+    }
+
+    pub(in crate::data_types::data_array) mod categorical {
+        #[derive(Clone, Debug, Default)]
+        pub struct DataArray<'a> {
+            pub data: Vec<(usize, &'a String)>,
+        }
+    }
+
+    pub trait Data {
+        type DataArray;
+        fn print(&self);
+    }
+
+    #[derive(Clone, Debug, Default)]
+    pub struct ContinuousDataArray {
+        pub data_array: continuous::DataArray,
+        pub column_index: usize,
+        pub name: String,
+        pub population: Option<bool>,
+        pub n: usize,
+        pub mean: f64,
+        pub sum_of_squares: f64,
+        pub deviations: Vec<f64>,
+        pub variance: f64,
+        pub standard_deviation: f64,
+        pub z_scores: Vec<f64>,
+    }
+
+    impl Data for ContinuousDataArray {
+        type DataArray = continuous::DataArray;
+
+        fn print(&self) {
+            info!("{}", logging::format_title(&*self.name));
+            info!("Data Type.....................Continuous",);
+            info!("Column Index..................{}", self.column_index);
+            // debug!("Data: {:?}", &self.data);
+            info!("N.............................{}", self.n);
+            info!(
+                "Population....................{}",
+                self.population.unwrap_or_default()
+            );
+            info!("Mean..........................{}", self.mean);
+            info!("Sum of Squares................{}", self.sum_of_squares);
+            // debug!("Deviations: {:?}", self.deviations.clone().unwrap_or_default());
+            info!("Variance......................{}", self.variance);
+            info!("Standard deviation............{}", self.standard_deviation);
+            // debug!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct CategoricalDataArray<'a> {
+        pub data_array: categorical::DataArray<'a>,
+        pub column_index: usize,
+        pub name: String,
+        pub population: Option<bool>,
+        pub n: usize,
+        pub levels: HashMap<&'a String, Vec<usize>>,
+    }
+
+    impl CategoricalDataArray<'_> {
+        pub fn retrieve_level_indices(&self, level_name: String) -> Vec<&usize> {
+            self.levels
+                .iter()
+                .filter_map(|(key, indices)| {
+                    if level_name == **key {
+                        Some(indices)
+                    } else {
+                        None
+                    }
+                })
+                .flatten()
+                .collect::<Vec<&usize>>()
+        }
+
+        // pub fn retrieve_level_and_indices(&self, level_name: String) -> Vec<(&usize, &String)> {
+        //     let indices = self.retrieve_level_indices(level_name);
+        //     let mut iter = indices.into_iter();
+        //     let mut index = iter.next();
+        //     self.data_array
+        //         .data
+        //         .iter()
+        //         .filter_map(|(key, value)| {
+        //             if index.is_some() && *key == *index.unwrap() {
+        //                 index = iter.next();
+        //                 Some((key, *value))
+        //             } else {
+        //                 None
+        //             }
+        //         })
+        //         .collect::<Vec<(&usize, &String)>>()
+        // }
+    }
+
+    impl<'a> Data for CategoricalDataArray<'a> {
+        type DataArray = categorical::DataArray<'a>;
+
+        fn print(&self) {
+            info!("{}", logging::format_title(&*self.name));
+            info!("Data Type.....................Categorical",);
+            info!("Column Index..................{}", self.column_index);
+            // debug!("Data: {:?}", &self.data);
+            info!("N.............................{}", self.n);
+            info!(
+                "Population....................{}",
+                self.population.unwrap_or_default()
+            );
+            info!("Levels........................{:#?}", self.levels);
+        }
+    }
 }
 
-impl DataArray {
-    pub fn new<T>(name: String, data: Vec<T>, pop: Option<bool>) -> Result<DataArray, Error>
-    where
-        T: Copy + std::fmt::Debug,
-        f64: Convert<T>,
-    {
-        let mut new_data_array = DataArray::default();
-        new_data_array.name = name;
-        new_data_array.data = convert_slice_to_f64(data.as_slice(), 0.0, 1.0)?;
-        new_data_array.population = pop;
-        new_data_array.run_calculations();
-        Ok(new_data_array)
+pub mod sample_data {
+    use super::data::categorical::DataArray;
+    use super::data::{CategoricalDataArray, ContinuousDataArray, Data};
+    use anyhow::{Error, Result};
+    use std::marker::PhantomData;
+
+    #[derive(Clone, Debug)]
+    pub struct SampleData<D: Data> {
+        _data_type: PhantomData<D>,
     }
 
-    pub fn run_calculations(&mut self) {
-        // Mean
-        self.calculate_mean();
+    impl SampleData<ContinuousDataArray> {
+        pub fn new(
+            name: String,
+            data: &Vec<f64>,
+            column_index: usize,
+            pop: Option<bool>,
+        ) -> Result<ContinuousDataArray, Error> {
+            let mut new_data_array: ContinuousDataArray = Default::default();
 
-        // Sum of Squares
-        self.calculate_sum_of_squares();
+            new_data_array.name = name;
+            new_data_array.column_index = column_index;
+            new_data_array.n = data.len();
 
-        // Deviations
-        self.calculate_deviations();
+            // collect into a vector of tuple (row_num, datum), where rows start at 1 (header is 0)
+            new_data_array.data_array.data = data
+                .iter()
+                .enumerate()
+                .map(|x| -> Result<(usize, f64), Error> { Ok((x.0, *x.1)) })
+                .collect::<Result<Vec<(usize, f64)>, Error>>()?;
 
-        // Variance
-        self.calculate_variance();
+            // establishes if we need to adjust for sample or pop later for variance calculations
+            new_data_array.population = pop;
 
-        // Standard Deviation
-        self.calculate_standard_deviation();
+            // mean = sum(x_i) / N
+            new_data_array.mean = new_data_array
+                .data_array
+                .data
+                .iter()
+                .map(|x| x.1) // extract datum
+                .sum::<f64>()
+                / new_data_array.data_array.data.len() as f64;
 
-        // Z-Scores
-        self.calculate_z_scores();
+            // ss = sum((x_i - mean)^2)
+            new_data_array.sum_of_squares = new_data_array
+                .data_array
+                .data
+                .iter()
+                .map(|x| f64::powi(x.1 - new_data_array.mean, 2))
+                .sum::<f64>();
+
+            // deviation = x - mean
+            new_data_array.deviations = new_data_array
+                .data_array
+                .data
+                .iter()
+                .map(|x| x.1 - new_data_array.mean)
+                .collect();
+
+            // s^2 = ss / (N - 1)
+            // N for pop (true), N-1 for sample (default = false)
+            new_data_array.variance = new_data_array.sum_of_squares
+                / (new_data_array.data_array.data.len() as f64
+                    - if new_data_array.population.unwrap_or_default() {
+                        0.0
+                    } else {
+                        1.0
+                    });
+
+            // s = sqrt(s^2)
+            new_data_array.standard_deviation = f64::sqrt(new_data_array.variance);
+
+            // z = x / s
+            new_data_array.z_scores = new_data_array
+                .data_array
+                .data
+                .iter()
+                .map(|x| x.1 / new_data_array.standard_deviation)
+                .collect();
+
+            // pub fn get_probability_density(&self, x: f64) -> Result<f64, Error> {
+            //     let fraction = 1.0 / f64::sqrt(2.0 * PI * self.variance);
+            //     let e_exponential = E.powf(-f64::powi((x - self.mean), 2) / (2.0 * self.variance));
+            //     Ok(fraction * e_exponential)
+            // }
+
+            // raw = deviation + mean
+            // pub fn get_raw_scores_from_deviations(&self) -> Result<Vec<f64>, Error> {
+            //     Ok(self.deviations.iter().map(|x| *x + self.mean).collect())
+            // }
+
+            // pub fn get_single_t(&self, mu: f64) -> Result<f64, Error> {
+            //     Ok((self.mean - mu) / (self.standard_deviation / f64::sqrt(self.data.len() as f64)))
+            // }
+
+            Ok(new_data_array)
+        }
     }
 
-    // mean = sum(x_i) / N
-    fn calculate_mean(&mut self) {
-        self.mean = self.data.iter().sum::<f64>() / self.data.len() as f64;
-    }
+    impl<'a> SampleData<CategoricalDataArray<'a>> {
+        pub fn new(
+            name: String,
+            data: &'a Vec<String>,
+            column_index: usize,
+            population: Option<bool>,
+        ) -> Result<CategoricalDataArray, Error> {
+            let mut new_data_array: CategoricalDataArray = CategoricalDataArray {
+                data_array: DataArray {
+                    data: Vec::with_capacity(data.len()),
+                },
+                column_index,
+                name,
+                population,
+                n: data.len(),
+                levels: Default::default(),
+            };
 
-    // ss = sum((x_i - mean)^2)
-    fn calculate_sum_of_squares(&mut self) {
-        self.sum_of_squares = self.data.iter()
-            .map(|x| f64::powi(x - self.mean, 2))
-            .sum::<f64>();
-    }
+            new_data_array.data_array.data = data
+                .iter()
+                .enumerate()
+                .map(|x| -> Result<(usize, &'a String), Error> {
+                    new_data_array.levels.entry(x.1).or_insert(vec![]).push(x.0);
+                    Ok((x.0, &*x.1))
+                })
+                .collect::<Result<Vec<(usize, &'a String)>, _>>()?;
 
-    fn calculate_deviations(&mut self) {
-        self.deviations = self.data.iter()
-            .map(|x| x - self.mean).collect();
-    }
-
-    // s^2 = ss / (N - 1)
-    fn calculate_variance(&mut self) {
-        // N for pop (true), N-1 for sample (default = false)
-        self.variance = self.sum_of_squares / (self.data.len() as f64
-            - if self.population.unwrap_or_default() { 0.0 } else { 1.0 });
-    }
-
-    // s = sqrt(s^2)
-    fn calculate_standard_deviation(&mut self) {
-        self.standard_deviation = f64::sqrt(self.variance);
-    }
-
-    // z = x / s
-    fn calculate_z_scores(&mut self) {
-        self.z_scores = self.data.iter()
-            .map(|x| x / self.standard_deviation).collect();
-    }
-
-    pub fn get_probability_density(&self, x: f64) -> Result<f64, Error> {
-        let fraction = 1.0 / f64::sqrt(2.0 * PI * self.variance);
-        let e_exponential = E.powf(-f64::powi((x - self.mean), 2) / (2.0 * self.variance));
-        Ok(fraction * e_exponential)
-    }
-
-    // raw = deviation + mean
-    pub fn get_raw_scores_from_deviations(&self) -> Result<Vec<f64>, Error> {
-        Ok(
-            self.deviations.iter()
-            .map(|x| *x + self.mean).collect()
-        )
-    }
-
-    pub fn get_single_t(&self, mu: f64) -> Result<f64, Error> {
-        Ok((self.mean - mu) / (self.standard_deviation / f64::sqrt(self.data.len() as f64)))
-    }
-
-    // pub fn run_graph_test(&self) {
-    //     let mut x_values = Vec::from_iter(0.0..100.0);
-    //     x_values.iter().for_each(|&x| self.get_probability_density(*x));
-    //
-    //     graph_test(String::from("Testing"), x_values).expect("Graphing failed");
-    // }
-
-    pub fn print_data(&self) {
-        info!("{}", logging::format_title(&*self.name));
-        // debug!("Data: {:?}", &self.data);
-        info!("N.............................{}", self.data.len());
-        info!("Population....................{}", self.population.unwrap_or_default());
-        info!("Mean..........................{}", self.mean);
-        info!("Sum of Squares................{}", self.sum_of_squares);
-        // debug!("Deviations: {:?}", self.deviations.clone().unwrap_or_default());
-        info!("Variance......................{}", self.variance);
-        info!("Standard deviation............{}", self.standard_deviation);
-        // debug!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
+            Ok(new_data_array)
+        }
     }
 }

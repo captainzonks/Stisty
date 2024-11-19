@@ -20,11 +20,10 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 
-use std::io;
-use log::info;
 use crate::logging::{format_title, setup_logger};
 use crate::tests::tests::*;
-
+use log::info;
+use std::io;
 
 fn run_ratatui(mut terminal: DefaultTerminal) -> io::Result<()> {
     loop {
@@ -66,10 +65,10 @@ fn main() -> Result<()> {
     // run_halloween_candy().expect("Halloween candy test failed");
     // run_exam_2().expect("exam 2 failed");
     // run_exam_2_followup().expect("exam 2 followup failed");
-    run_superheroes().expect("superheroes failed");
+    // run_superheroes().expect("superheroes failed");
     // run_tinder_test().expect("Tinder test failed");
     // run_gpa_test().expect("GPA test failed");
-    // run_student_eyes_test().expect("student eyes test failed");
+    run_glasses_occupation_likes_test().expect("student eyes test failed");
 
     info!("{}", format_title(&*""));
 

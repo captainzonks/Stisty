@@ -1,6 +1,4 @@
-use crate::data_types::data_array::DataArray;
 use crate::error_types::{CSVError, CSVErrorKind};
-use crate::functions::convert::Convert;
 use anyhow::{Error, Result};
 use log::info;
 use std::fmt::Debug;
@@ -26,6 +24,7 @@ pub fn import_csv_data(
     let mut reader = reader_builder.from_path(file_path)?;
 
     let mut sample_data: CSVData = Default::default();
+    sample_data.headers = reader.headers()?.clone().iter().map(String::from).collect();
     let mut column_count: usize = 0;
 
     for result in reader.records() {
@@ -43,6 +42,7 @@ pub fn import_csv_data(
 #[derive(Default, Debug)]
 pub struct CSVData {
     pub data: Vec<String>,
+    pub headers: Vec<String>,
     pub row_length: usize,
     pub column_count: usize,
 }
@@ -67,6 +67,7 @@ impl CSVData {
         };
         // row_len * row + column (row major)
         let extracted_string = &self.data[self.row_length * (row - one) + (column - one)];
+
         T::from_str(extracted_string)
             .map_err(|error| CSVErrorKind::DataExtraction { source: error })
             .map_err(|error| CSVError {
@@ -80,7 +81,7 @@ impl CSVData {
     /// Retrieves a column of data from CSVData's data vector.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
-    pub fn get_col<T>(
+    pub fn get_column<T>(
         &self,
         column: usize,
         one_based_index: Option<bool>,
@@ -108,26 +109,5 @@ impl CSVData {
             col.push(self.get_datum::<T>(i, column, one_based_index)?)
         }
         Ok(col)
-    }
-
-    // Extracts a column out of the CSV data as a DataArray object
-    pub fn get_column_as_data_array<T>(
-        &self,
-        data_name: String,
-        column: usize,
-        one_based_index: bool,
-        population: bool,
-    ) -> Result<DataArray, Error>
-    where
-        T: FromStr + Clone + Copy + Debug + 'static,
-        <T as FromStr>::Err: std::error::Error + Send + Sync + 'static,
-        f64: Convert<T>,
-    {
-        Ok(DataArray::new(
-            data_name,
-            self.get_col::<T>(column, Some(one_based_index))
-                .map_err(|error| <CSVError<T>>::from(error))?,
-            Some(population),
-        )?)
     }
 }
