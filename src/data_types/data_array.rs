@@ -203,11 +203,11 @@ impl<'a> CategoricalDataArray<'a> {
 
         Ok(new_data_array)
     }
-    pub fn retrieve_level_indices(&self, level_name: String) -> Vec<&usize> {
+    pub fn get_level_indices(&self, level_name: &String) -> Vec<&usize> {
         self.levels
             .iter()
             .filter_map(|(key, indices)| {
-                if level_name == **key {
+                if *level_name == **key {
                     Some(indices)
                 } else {
                     None
@@ -234,4 +234,27 @@ impl<'a> CategoricalDataArray<'a> {
     //         })
     //         .collect::<Vec<(&usize, &String)>>()
     // }
+
+    pub fn get_level_data(
+        &self,
+        level_name: &String,
+        continuous_data: &'a ContinuousDataArray,
+    ) -> Result<Vec<&f64>, Error> {
+        let level_indices = self.get_level_indices(level_name);
+        let mut iter = level_indices.iter();
+        let mut next_index = iter.next();
+        Ok(continuous_data
+            .data_array
+            .data
+            .iter()
+            .filter_map(|x| -> Option<&f64> {
+                if next_index.is_some() && x.0 == **next_index.unwrap() {
+                    next_index = iter.next();
+                    Some(&x.1)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<&f64>>())
+    }
 }

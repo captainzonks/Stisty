@@ -1,5 +1,7 @@
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
-use crate::functions::stats_math::{differences, mean, pooled_variance, variance};
+use crate::functions::stats_math::{
+    covariance, differences, mean, pooled_variance, sum_of_squares, variance,
+};
 use crate::logging;
 use anyhow::{anyhow, Error};
 use log::info;
@@ -207,17 +209,19 @@ impl<'a> IndependentGroupsT<'a> {
     pub fn new(
         name: String,
         description: String,
-        categorical_data_array: &'a CategoricalDataArray,
-        continuous_data_array: &'a ContinuousDataArray,
+        categorical_data: &'a CategoricalDataArray,
+        continuous_data: &'a ContinuousDataArray,
     ) -> anyhow::Result<IndependentGroupsT<'a>, Error> {
-        if categorical_data_array.levels.keys().len() == 2 {
+        if categorical_data.levels.keys().len() == 2 {
             let mut new_igt = IndependentGroupsT {
                 name,
                 description,
-                _level_row_indices: vec![],
+                _level_row_indices: Vec::with_capacity(
+                    Vec::<usize>::with_capacity(categorical_data.levels.len()).len(),
+                ),
                 _df: 0,
-                _categorical_data: categorical_data_array,
-                _continuous_data: continuous_data_array,
+                _categorical_data: categorical_data,
+                _continuous_data: continuous_data,
                 _variance_level_1: 0.0,
                 _variance_level_2: 0.0,
                 _pooled_variance: 0.0,
@@ -225,13 +229,6 @@ impl<'a> IndependentGroupsT<'a> {
                 _statistic_run: false,
                 t: 0.0,
             };
-
-            new_igt._level_row_indices = new_igt
-                ._categorical_data
-                .levels
-                .iter()
-                .map(|x| x.1)
-                .collect::<Vec<&'a Vec<usize>>>();
 
             new_igt.run_statistic()?;
 
@@ -242,46 +239,42 @@ impl<'a> IndependentGroupsT<'a> {
     }
 
     fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+        self._level_row_indices = self
+            ._categorical_data
+            .levels
+            .iter()
+            .map(|x| x.1)
+            .collect::<Vec<&'a Vec<usize>>>();
+
         self._df = if self._categorical_data.n >= 2 {
             self._categorical_data.n - 2
         } else {
             0
         };
 
-        let filter = |mut i: core::slice::Iter<usize>| {
-            let mut next_val = i.next();
-            return self
-                ._continuous_data
-                .data_array
-                .data
-                .iter()
-                .filter_map(|x| -> Option<f64> {
-                    if next_val.is_some() && x.0 == *next_val.unwrap() {
-                        next_val = i.next();
-                        Some(x.1)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<f64>>();
-        };
+        let mut separated_continuous_data: Vec<Vec<&f64>> =
+            Vec::with_capacity(self._continuous_data.n);
 
-        let mut iter = self._level_row_indices[0].iter();
-        let level_1_continuous_data = filter(iter);
+        for (level_name, _) in &self._categorical_data.levels {
+            separated_continuous_data.push(
+                self._categorical_data
+                    .get_level_data(level_name, &self._continuous_data)?,
+            );
+        }
 
-        iter = self._level_row_indices[1].iter();
-        let level_2_continuous_data = filter(iter);
+        let level_1_continuous_data = &separated_continuous_data[0];
+        let level_2_continuous_data = &separated_continuous_data[1];
 
         self._variance_level_1 =
-            variance(&level_1_continuous_data, self._continuous_data.population)?;
+            variance(level_1_continuous_data, self._continuous_data.population)?;
         self._variance_level_2 =
-            variance(&level_2_continuous_data, self._continuous_data.population)?;
+            variance(level_2_continuous_data, self._continuous_data.population)?;
 
         self._pooled_variance = pooled_variance(
-            &level_1_continuous_data,
-            &level_2_continuous_data,
-            Some(self._variance_level_1),
-            Some(self._variance_level_2),
+            level_1_continuous_data,
+            level_2_continuous_data,
+            Some(&self._variance_level_1),
+            Some(&self._variance_level_2),
         )?;
 
         self._standard_deviation_differences_between_means = f64::sqrt(
@@ -300,9 +293,9 @@ impl<'a> IndependentGroupsT<'a> {
     pub fn print(mut self) {
         if self._statistic_run {
             info!("{}", logging::format_title(&*self.name));
-            info!("Description: {}", self.description);
-            info!("Level 1: {}", self._categorical_data.data_array.data[0].0);
-            info!("Level 2: {}", self._categorical_data.data_array.data[1].0);
+            info!("Description: '{}'", self.description);
+            info!("Level 1: '{}'", self._categorical_data.data_array.data[0].1);
+            info!("Level 2: '{}'", self._categorical_data.data_array.data[1].1);
             info!("Variance Level 1: {}", self._variance_level_1);
             info!("Variance Level 2: {}", self._variance_level_2);
             info!("Pooled variance: {}", self._pooled_variance);
@@ -321,6 +314,7 @@ impl<'a> IndependentGroupsT<'a> {
 #[derive(Debug, Clone)]
 pub struct ZTest<'a> {
     pub name: String,
+    pub description: String,
     pub n: usize,
     pub df: usize,
 
@@ -333,6 +327,210 @@ pub struct ZTest<'a> {
     // calculated
     pub z: f64,
 }
+
+pub struct ANOVA<'a> {
+    pub name: String,
+    pub description: String,
+    _level_row_indices: Vec<&'a Vec<usize>>,
+    _df_b: usize,
+    _df_w: usize,
+
+    // provided
+    _categorical_data: &'a CategoricalDataArray<'a>,
+    _continuous_data: &'a ContinuousDataArray,
+
+    // calculated
+    _level_means: Vec<f64>,
+    _grand_mean: f64,
+
+    _sum_of_squares_between_groups: f64,
+    _sum_of_squares_within_groups: f64,
+
+    _mean_square_between_groups: f64,
+    _mean_square_within_groups: f64,
+
+    _statistic_run: bool,
+    pub f: f64,
+}
+
+impl<'a> ANOVA<'a> {
+    pub fn new(
+        name: String,
+        description: String,
+        categorical_data: &'a CategoricalDataArray,
+        continuous_data: &'a ContinuousDataArray,
+    ) -> anyhow::Result<ANOVA<'a>, Error> {
+        if categorical_data.levels.len() >= 3 {
+            let mut new_anova = ANOVA {
+                name,
+                description,
+                _level_row_indices: Vec::with_capacity(
+                    Vec::<usize>::with_capacity(categorical_data.levels.len()).len(),
+                ),
+                _df_b: categorical_data.levels.len() - 1,
+                _df_w: 0,
+                _categorical_data: categorical_data,
+                _continuous_data: continuous_data,
+                _level_means: Vec::with_capacity(categorical_data.levels.len()),
+                _grand_mean: 0.0,
+                _sum_of_squares_between_groups: 0.0,
+                _sum_of_squares_within_groups: 0.0,
+                _mean_square_between_groups: 0.0,
+                _mean_square_within_groups: 0.0,
+                _statistic_run: false,
+                f: 0.0,
+            };
+
+            new_anova.run_statistic()?;
+
+            Ok(new_anova)
+        } else {
+            Err(anyhow!("Categorical data consisting of at least three levels is required for a one way ANOVA test"))
+        }
+    }
+
+    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+        self._level_row_indices = self
+            ._categorical_data
+            .levels
+            .iter()
+            .map(|x| x.1)
+            .collect::<Vec<&'a Vec<usize>>>();
+
+        self._df_w = self._categorical_data.levels.len() * (self._level_row_indices[0].len() - 1);
+
+        let mut separated_continuous_data: Vec<Vec<&f64>> =
+            Vec::with_capacity(self._continuous_data.n);
+
+        for (level_name, _) in self._categorical_data.levels.iter() {
+            separated_continuous_data.push(
+                self._categorical_data
+                    .get_level_data(level_name, self._continuous_data)?,
+            );
+        }
+
+        for i in 0..separated_continuous_data.len() {
+            self._level_means.push(mean(&separated_continuous_data[i])?);
+        }
+
+        self._grand_mean =
+            self._level_means.iter().sum::<f64>() / self._categorical_data.levels.len() as f64;
+
+        self._sum_of_squares_between_groups = self
+            ._level_means
+            .iter()
+            .enumerate()
+            .map(|(index, mean)| {
+                f64::powi(mean - self._grand_mean, 2) * self._level_row_indices[index].len() as f64
+            })
+            .sum::<f64>();
+        self._mean_square_between_groups = self._sum_of_squares_between_groups / self._df_b as f64;
+
+        self._sum_of_squares_within_groups = separated_continuous_data
+            .iter()
+            .enumerate()
+            .map(|(index, data_set)| {
+                data_set
+                    .iter()
+                    .map(|datum| f64::powi(*datum - self._level_means[index], 2))
+                    .sum::<f64>()
+            })
+            .sum::<f64>();
+
+        self._mean_square_within_groups = self._sum_of_squares_within_groups / self._df_w as f64;
+
+        self.f = self._mean_square_between_groups / self._mean_square_within_groups;
+
+        self._statistic_run = true;
+
+        Ok(())
+    }
+
+    pub fn print(mut self) {
+        if self._statistic_run {
+            info!("{}", logging::format_title(&*self.name));
+            info!("Description: '{}'", self.description);
+            for (index, (level_name, _)) in self._categorical_data.levels.iter().enumerate() {
+                info!("Level {}: {}", index, level_name);
+            }
+            info!("Grand Mean: {}", self._grand_mean);
+            info!("dfB: {}", self._df_b);
+            info!("dfW: {}", self._df_w);
+            info!("SSB: {}", self._sum_of_squares_between_groups);
+            info!("SSW: {}", self._sum_of_squares_within_groups);
+            info!("MSB: {}", self._mean_square_between_groups);
+            info!("MSW: {}", self._mean_square_within_groups);
+            info!("F: {}", self.f);
+        } else {
+            self.run_statistic().expect("Error running statistic");
+            self.print();
+        }
+    }
+}
+
+//         // y-hat = beta(x) + alpha
+//         // x = (y-hat - alpha) / beta
+//         // beta = (y-hat - alpha) / x
+//         // alpha = y-hat - (beta)x
+//
+//         new_relationship.slope_beta =
+//             new_relationship.covariance / new_relationship.data_x.variance;
+//
+//         new_relationship.intercept_alpha = new_relationship.data_y.mean
+//             - new_relationship.slope_beta * new_relationship.data_x.mean;
+//
+//         // beta_hat = sum((x_i - x-bar)(y - y-bar)) / sum((x_i - x-bar)^2)
+//         new_relationship.slope_beta_hat =
+//             new_relationship.sum_of_product_of_deviations / new_relationship.data_x.sum_of_squares;
+//
+//         // alpha_hat = y-bar - (beta_hat * x-bar)
+//         new_relationship.intercept_alpha_hat = new_relationship.data_y.mean
+//             - (new_relationship.slope_beta_hat * new_relationship.data_x.mean);
+//
+//         // calculate fitted
+//         for datum in new_relationship.data_x.data.iter() {
+//             new_relationship
+//                 .fitted_values
+//                 .push(new_relationship.get_y_hat(*datum));
+//         }
+//
+//         // calculate and collect residuals
+//         let mut fitted_iter = new_relationship.fitted_values.iter();
+//         new_relationship.residuals = new_relationship
+//             .data_y
+//             .data
+//             .iter()
+//             .map(|y_i| y_i - fitted_iter.next().unwrap())
+//             .collect();
+
+//         // ESS = sum((fitted_y - y_mean)^2)
+//         new_relationship.explained_sum_of_squares = new_relationship
+//             .fitted_values
+//             .iter()
+//             .map(|fitted_y| f64::powi(fitted_y - new_relationship.data_y.mean, 2))
+//             .sum::<f64>();
+
+//         // SSE = sum(residual^2)
+//         new_relationship.sum_of_squares_error = new_relationship
+//             .residuals
+//             .iter()
+//             .map(|residual| f64::powi(*residual, 2))
+//             .sum::<f64>();
+
+//         // SST (treatment sum of squares)
+//          SST = sum( for every group ( n.i * x.i.mean ^ 2 - n.all * x.grand_mean ^ 2 )
+
+//         // MSR = ESS / p, or MSR = ESS (since p = 1)
+//         new_relationship.mean_square_regression =
+//             new_relationship.explained_sum_of_squares / new_relationship.p;
+
+//         // MSE = SSE / n
+//         new_relationship.mean_square_error = new_relationship.sum_of_squares_error
+//             / (new_relationship.n_all - new_relationship.p - 1.0);
+
+//         // F-statistic, one-way ANOVA Type 1
+//         new_relationship.one_way_anova_f_statistic =
+//             new_relationship.mean_square_regression / new_relationship.mean_square_error;
 
 //
 // #[derive(Debug, Clone)]

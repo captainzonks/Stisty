@@ -1,6 +1,6 @@
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray, Data};
 // use crate::data_types::multiple_regression::MultipleRegression;
-use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT};
+use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
 use crate::functions::csv::import_csv_data;
 // use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
 use anyhow::{Error, Result};
@@ -721,6 +721,31 @@ pub fn run_glasses_occupation_likes_test() -> Result<(), Error> {
     )?;
 
     employment_sleep_independent_t.print();
+
+    Ok(())
+}
+
+pub fn run_anova_sample_test() -> Result<(), Error> {
+    let anova_sample_path = Path::new("./csv-files/anova_sample.csv");
+    let anova_sample_csv_data = import_csv_data(anova_sample_path, None, None)?;
+
+    let school_vec = &anova_sample_csv_data.get_column::<String>(1, Some(false))?;
+    let gpa_vec = &anova_sample_csv_data.get_column::<f64>(4, Some(false))?;
+
+    let school_data_array =
+        CategoricalDataArray::new(String::from("School"), school_vec, 1, Some(false))?;
+    let gpa_data_array = ContinuousDataArray::new(String::from("GPA"), gpa_vec, 4, Some(false))?;
+
+    let school_vs_gpa_anova = ANOVA::new(
+        String::from("School vs GPA"),
+        String::from(
+            "There is a difference in the means of GPAs between CU Boulder, CU Denver and CSU.",
+        ),
+        &school_data_array,
+        &gpa_data_array,
+    )?;
+
+    school_vs_gpa_anova.print();
 
     Ok(())
 }

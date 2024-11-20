@@ -35,7 +35,7 @@ where
     Ok(f64::convert(datum) - mean(data)?)
 }
 
-pub fn variance<T: Copy>(data: &Vec<T>, pop: Option<bool>) -> Result<f64, Error>
+pub fn variance<'a, T: Copy>(data: &Vec<T>, pop: Option<bool>) -> Result<f64, Error>
 where
     f64: Convert<T>,
 {
@@ -287,24 +287,27 @@ pub fn differences(data_x: &Vec<f64>, data_y: &Vec<f64>) -> Result<Vec<f64>, Err
     Ok(data_y.iter().map(|x| x - iter.next().unwrap()).collect())
 }
 
-pub fn pooled_variance(
-    data_x: &Vec<f64>,
-    data_y: &Vec<f64>,
-    variance_x: Option<f64>,
-    variance_y: Option<f64>,
-) -> Result<f64, Error> {
+pub fn pooled_variance<'a, T: Copy>(
+    data_x: &Vec<T>,
+    data_y: &Vec<T>,
+    variance_x: Option<T>,
+    variance_y: Option<T>,
+) -> Result<f64, Error>
+where
+    f64: Convert<T>,
+{
     let n_x = data_x.len() as f64;
     let n_y = data_y.len() as f64;
 
     Ok(((n_x - 1.0)
         * if variance_x.is_some() {
-            variance_x.unwrap()
+            f64::convert(variance_x.unwrap())
         } else {
             variance(data_x, None)?
         }
         + (n_y - 1.0)
             * if variance_y.is_some() {
-                variance_y.unwrap()
+                f64::convert(variance_y.unwrap())
             } else {
                 variance(data_y, None)?
             })

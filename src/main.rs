@@ -68,7 +68,8 @@ fn main() -> Result<()> {
     // run_superheroes().expect("superheroes failed");
     // run_tinder_test().expect("Tinder test failed");
     // run_gpa_test().expect("GPA test failed");
-    run_glasses_occupation_likes_test().expect("student eyes test failed");
+    // run_glasses_occupation_likes_test().expect("student eyes test failed");
+    run_anova_sample_test().expect("ANOVA sample test failed.");
 
     info!("{}", format_title(&*""));
 
