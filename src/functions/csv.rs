@@ -48,7 +48,7 @@ pub struct CSVData {
 }
 
 impl CSVData {
-    /// Retrieves a single datum from SampleData's vector as if it were a 2D array.
+    /// Retrieves a single datum from CSVData's data vector as if it were a 2D array.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
     pub fn get_datum<T>(
@@ -103,6 +103,7 @@ impl CSVData {
         } else {
             0
         };
+
         let mut col: Vec<T> = Vec::with_capacity(self.data.len());
 
         for i in initial_index..self.column_count + initial_index {

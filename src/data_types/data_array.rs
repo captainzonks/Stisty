@@ -1,3 +1,5 @@
+use crate::data_types::data_array::categorical::DataArray as categorical_data_array;
+use crate::data_types::data_array::continuous::DataArray as continuous_data_array;
 use crate::logging;
 use anyhow::Error;
 use log::info;
@@ -17,14 +19,9 @@ pub(self) mod categorical {
     }
 }
 
-pub trait Data {
-    type DataArray;
-    fn print(&self);
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct ContinuousDataArray {
-    pub data_array: continuous::DataArray,
+    pub data_array: continuous_data_array,
     pub column_index: usize,
     pub name: String,
     pub population: Option<bool>,
@@ -35,28 +32,6 @@ pub struct ContinuousDataArray {
     pub variance: f64,
     pub standard_deviation: f64,
     pub z_scores: Vec<f64>,
-}
-
-impl Data for ContinuousDataArray {
-    type DataArray = continuous::DataArray;
-
-    fn print(&self) {
-        info!("{}", logging::format_title(&*self.name));
-        info!("Data Type.....................Continuous",);
-        info!("Column Index..................{}", self.column_index);
-        // debug!("Data: {:?}", &self.data);
-        info!("N.............................{}", self.n);
-        info!(
-            "Population....................{}",
-            self.population.unwrap_or_default()
-        );
-        info!("Mean..........................{}", self.mean);
-        info!("Sum of Squares................{}", self.sum_of_squares);
-        // debug!("Deviations: {:?}", self.deviations.clone().unwrap_or_default());
-        info!("Variance......................{}", self.variance);
-        info!("Standard deviation............{}", self.standard_deviation);
-        // debug!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
-    }
 }
 
 impl ContinuousDataArray {
@@ -145,24 +120,10 @@ impl ContinuousDataArray {
 
         Ok(new_data_array)
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct CategoricalDataArray<'a> {
-    pub data_array: categorical::DataArray<'a>,
-    pub column_index: usize,
-    pub name: String,
-    pub population: Option<bool>,
-    pub n: usize,
-    pub levels: HashMap<&'a String, Vec<usize>>,
-}
-
-impl<'a> Data for CategoricalDataArray<'a> {
-    type DataArray = categorical::DataArray<'a>;
-
-    fn print(&self) {
+    pub fn print(&self) {
         info!("{}", logging::format_title(&*self.name));
-        info!("Data Type.....................Categorical",);
+        info!("Data Type.....................Continuous",);
         info!("Column Index..................{}", self.column_index);
         // debug!("Data: {:?}", &self.data);
         info!("N.............................{}", self.n);
@@ -170,8 +131,23 @@ impl<'a> Data for CategoricalDataArray<'a> {
             "Population....................{}",
             self.population.unwrap_or_default()
         );
-        info!("Levels........................{:#?}", self.levels);
+        info!("Mean..........................{}", self.mean);
+        info!("Sum of Squares................{}", self.sum_of_squares);
+        // debug!("Deviations: {:?}", self.deviations.clone().unwrap_or_default());
+        info!("Variance......................{}", self.variance);
+        info!("Standard deviation............{}", self.standard_deviation);
+        // debug!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct CategoricalDataArray<'a> {
+    pub data_array: categorical_data_array<'a>,
+    pub column_index: usize,
+    pub name: String,
+    pub population: Option<bool>,
+    pub n: usize,
+    pub levels: HashMap<&'a String, Vec<usize>>,
 }
 
 impl<'a> CategoricalDataArray<'a> {
@@ -203,6 +179,20 @@ impl<'a> CategoricalDataArray<'a> {
 
         Ok(new_data_array)
     }
+
+    pub fn print(&self) {
+        info!("{}", logging::format_title(&*self.name));
+        info!("Data Type.....................Categorical",);
+        info!("Column Index..................{}", self.column_index);
+        // debug!("Data: {:?}", &self.data);
+        info!("N.............................{}", self.n);
+        info!(
+            "Population....................{}",
+            self.population.unwrap_or_default()
+        );
+        info!("Levels........................{:#?}", self.levels);
+    }
+
     pub fn get_level_indices(&self, level_name: &String) -> Vec<&usize> {
         self.levels
             .iter()

@@ -397,7 +397,7 @@ impl<'a> ANOVA<'a> {
             .map(|x| x.1)
             .collect::<Vec<&'a Vec<usize>>>();
 
-        self._df_w = self._categorical_data.levels.len() * (self._level_row_indices[0].len() - 1);
+        self._df_w = self._continuous_data.n - self._categorical_data.levels.len();
 
         let mut separated_continuous_data: Vec<Vec<&f64>> =
             Vec::with_capacity(self._continuous_data.n);
@@ -413,8 +413,13 @@ impl<'a> ANOVA<'a> {
             self._level_means.push(mean(&separated_continuous_data[i])?);
         }
 
-        self._grand_mean =
-            self._level_means.iter().sum::<f64>() / self._categorical_data.levels.len() as f64;
+        self._grand_mean = self
+            ._level_means
+            .iter()
+            .enumerate()
+            .map(|(index, mean)| mean * self._level_row_indices[index].len() as f64)
+            .sum::<f64>()
+            / self._continuous_data.data_array.data.len() as f64;
 
         self._sum_of_squares_between_groups = self
             ._level_means
@@ -452,6 +457,8 @@ impl<'a> ANOVA<'a> {
             info!("Description: '{}'", self.description);
             for (index, (level_name, _)) in self._categorical_data.levels.iter().enumerate() {
                 info!("Level {}: {}", index, level_name);
+                info!("..n: {}", self._level_row_indices[index].len());
+                info!("..mean: {}", self._level_means[index]);
             }
             info!("Grand Mean: {}", self._grand_mean);
             info!("dfB: {}", self._df_b);

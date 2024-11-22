@@ -1,4 +1,4 @@
-use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray, Data};
+use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 // use crate::data_types::multiple_regression::MultipleRegression;
 use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
 use crate::functions::csv::import_csv_data;
@@ -746,6 +746,47 @@ pub fn run_anova_sample_test() -> Result<(), Error> {
     )?;
 
     school_vs_gpa_anova.print();
+
+    Ok(())
+}
+
+pub fn run_exam_3_review_test() -> Result<(), Error> {
+    let exam_3_path = Path::new("./csv-files/exam_3_review_data.csv");
+    let exam_3_review_csv_data = import_csv_data(exam_3_path, None, None)?;
+
+    let drinks_vec = &exam_3_review_csv_data.get_column::<String>(4, Some(false))?;
+    let headphones_vec = &exam_3_review_csv_data.get_column::<f64>(7, Some(false))?;
+    let sleep_nov_vec = &exam_3_review_csv_data.get_column::<f64>(3, Some(false))?;
+
+    let drinks_data_array =
+        CategoricalDataArray::new(String::from("Drinks"), drinks_vec, 4, Some(false))?;
+    let headphones_data_array =
+        ContinuousDataArray::new(String::from("Headphones"), headphones_vec, 7, Some(false))?;
+    let november_sleep_data_array = ContinuousDataArray::new(
+        String::from("Hours of Sleep in November"),
+        sleep_nov_vec,
+        3,
+        Some(false),
+    )?;
+
+    let drinks_vs_headphones_anova = ANOVA::new(
+        String::from("Drinks vs Headphones"),
+        String::from("There is a difference in the means of headphones ownership based on drinks preference."),
+        &drinks_data_array,
+        &headphones_data_array
+    )?;
+
+    let drinks_vs_nov_sleep = ANOVA::new(
+        String::from("Drinks vs Sleep"),
+        String::from(
+            "There is a difference in the means of sleep in november based on drinks preference.",
+        ),
+        &drinks_data_array,
+        &november_sleep_data_array,
+    )?;
+
+    drinks_vs_headphones_anova.print();
+    drinks_vs_nov_sleep.print();
 
     Ok(())
 }
