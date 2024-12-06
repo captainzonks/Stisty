@@ -1,6 +1,6 @@
 use crate::data_types::data_array::categorical::DataArray as categorical_data_array;
 use crate::data_types::data_array::continuous::DataArray as continuous_data_array;
-use crate::logging;
+use crate::core::logging;
 use anyhow::Error;
 use log::info;
 use std::collections::HashMap;

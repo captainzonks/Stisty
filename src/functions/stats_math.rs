@@ -1,8 +1,9 @@
-use crate::error_types::{CSVError, CSVErrorKind};
-use crate::functions::convert::Convert;
-use crate::functions::{convert, stats_math};
+use crate::core::error_types::{CSVError, CSVErrorKind};
+use crate::core::convert::Convert;
+use crate::functions::stats_math;
 use anyhow::{anyhow, Error, Result};
 use log::info;
+use crate::core::convert;
 
 const MODULE_NAME: &str = "STATS_MATH";
 

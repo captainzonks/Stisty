@@ -1,0 +1,81 @@
+Participant,Holiday,Cereal,Diabetes,Apps,Rent,Stress August,Stress December,Debt first year,Debt fifth year,Plants,Police record
+1,Thanksgiving,Lucky Charms,yes,5,900,4,8,1000,2000,0,Yes
+2,Fourth of July,Crunch Berries,yes,7,1000,5,9,0,2000,7,No
+3,Flag Day,Lucky Charms,yes,4,950,6,7,500,3000,1,Yes
+4,Thanksgiving,Lucky Charms,yes,5,800,4,9,2000,2000,8,No
+5,Fourth of July,Lucky Charms,yes,8,850,5,7,2000,3000,1,Yes
+6,Flag Day,Lucky Charms,yes,3,900,5,8,3000,2000,1,Yes
+7,Thanksgiving,Lucky Charms,yes,5,950,3,10,2000,2000,0,Yes
+8,Fourth of July,Lucky Charms,yes,9,900,4,9,3000,2000,8,No
+9,Flag Day,Lucky Charms,yes,4,1000,5,7,2000,3000,8,No
+10,Thanksgiving,Lucky Charms,yes,5,900,6,12,500,2000,0,Yes
+11,Fourth of July,Lucky Charms,no,9,400,7,8,2000,3000,0,Yes
+12,Flag Day,Lucky Charms,no,7,200,4,9,2000,2000,1,Yes
+13,Thanksgiving,Lucky Charms,no,5,4000,4,9,3000,15000,2,Yes
+14,Fourth of July,Lucky Charms,no,8,1500,5,7,2000,40000,9,No
+15,Flag Day,Lucky Charms,no,5,400,9,16,3000,30000,7,No
+16,Thanksgiving,Lucky Charms,no,6,3000,3,8,2000,43000,8,No
+17,Fourth of July,Lucky Charms,no,11,350,4,9,0,35000,6,No
+18,Flag Day,Lucky Charms,no,6,400,8,7,200,43000,6,No
+19,Thanksgiving,Lucky Charms,no,5,5000,2,9,100,25000,6,No
+20,Fourth of July,Crunch Berries,yes,12,450,3,9,0,2000,2,Yes
+21,Flag Day,Crunch Berries,yes,4,400,10,8,300,2000,2,Yes
+22,Thanksgiving,Crunch Berries,yes,5,400,5,7,400,3000,1,Yes
+23,Fourth of July,Crunch Berries,yes,11,350,4,20,400,2000,1,Yes
+24,Flag Day,Crunch Berries,yes,6,400,9,8,1000,3000,1,Yes
+25,Thanksgiving,Crunch Berries,yes,7,300,4,9,400,2000,9,No
+26,Fourth of July,Crunch Berries,yes,10,450,3,9,400,2000,0,Yes
+27,Flag Day,Crunch Berries,yes,7,400,9,7,750,2000,7,No
+28,Thanksgiving,Crunch Berries,yes,8,400,3,8,0,3000,6,No
+29,Fourth of July,Crunch Berries,yes,12,350,3,7,200,2000,5,No
+30,Flag Day,Crunch Berries,yes,5,400,8,8,100,3000,9,Yes
+31,Thanksgiving,Crunch Berries,no,6,300,4,8,0,2000,9,Yes
+32,Fourth of July,Crunch Berries,no,11,450,5,9,300,15000,9,Yes
+33,Flag Day,Crunch Berries,no,6,350,8,9,400,40000,8,Yes
+34,Thanksgiving,Crunch Berries,no,5,400,5,7,400,30000,2,No
+35,Fourth of July,Crunch Berries,no,14,300,3,8,1000,43000,2,No
+36,Flag Day,Crunch Berries,no,5,450,10,8,400,35000,1,No
+37,Thanksgiving,Crunch Berries,no,5,350,2,9,400,43000,8,Yes
+38,Fourth of July,Crunch Berries,no,12,400,3,9,750,25000,9,Yes
+39,Flag Day,Crunch Berries,no,6,300,8,7,800,2000,9,Yes
+40,Thanksgiving,Crunch Berries,no,6,450,4,8,1100,2000,1,No
+41,Thanksgiving,Lucky Charms,yes,5,900,4,8,1000,2000,0,Yes
+42,Fourth of July,Crunch Berries,yes,7,1000,5,9,0,2000,7,No
+43,Flag Day,Lucky Charms,yes,4,950,6,7,500,3000,1,Yes
+44,Thanksgiving,Lucky Charms,yes,5,800,4,9,2000,2000,8,No
+45,Fourth of July,Lucky Charms,yes,8,850,5,7,2000,3000,1,Yes
+46,Flag Day,Lucky Charms,yes,3,900,5,8,3000,2000,1,Yes
+47,Thanksgiving,Lucky Charms,yes,5,950,3,10,2000,2000,0,Yes
+48,Fourth of July,Lucky Charms,yes,9,900,4,9,3000,2000,8,No
+49,Flag Day,Lucky Charms,yes,4,1000,5,7,2000,3000,8,No
+50,Thanksgiving,Lucky Charms,yes,5,900,6,12,500,2000,0,Yes
+51,Fourth of July,Lucky Charms,no,9,400,7,8,2000,3000,0,Yes
+52,Flag Day,Lucky Charms,no,7,200,4,9,2000,2000,1,Yes
+53,Thanksgiving,Lucky Charms,no,5,4000,4,9,3000,15000,2,Yes
+54,Fourth of July,Lucky Charms,no,8,1500,5,7,2000,40000,9,No
+55,Flag Day,Lucky Charms,no,5,400,9,16,3000,30000,7,No
+56,Thanksgiving,Lucky Charms,no,6,3000,3,8,2000,43000,8,No
+57,Fourth of July,Lucky Charms,no,11,350,4,9,0,35000,6,No
+58,Flag Day,Lucky Charms,no,6,400,8,7,200,43000,6,No
+59,Thanksgiving,Lucky Charms,no,5,5000,2,9,100,25000,6,No
+60,Fourth of July,Crunch Berries,yes,12,450,3,9,0,2000,2,Yes
+61,Flag Day,Crunch Berries,yes,4,400,10,8,300,2000,2,Yes
+62,Thanksgiving,Crunch Berries,yes,5,400,5,7,400,3000,1,Yes
+63,Fourth of July,Crunch Berries,yes,11,350,4,20,400,2000,1,Yes
+64,Flag Day,Crunch Berries,yes,6,400,9,8,1000,3000,1,Yes
+65,Thanksgiving,Crunch Berries,yes,7,300,4,9,400,2000,9,No
+66,Fourth of July,Crunch Berries,yes,10,450,3,9,400,2000,0,Yes
+67,Flag Day,Crunch Berries,yes,7,400,9,7,750,2000,7,No
+68,Thanksgiving,Crunch Berries,yes,8,400,3,8,0,3000,6,No
+69,Fourth of July,Crunch Berries,yes,12,350,3,7,200,2000,5,No
+70,Flag Day,Crunch Berries,yes,5,400,8,8,100,3000,9,Yes
+71,Thanksgiving,Crunch Berries,no,6,300,4,8,0,2000,9,Yes
+72,Fourth of July,Crunch Berries,no,11,450,5,9,300,15000,9,Yes
+73,Flag Day,Crunch Berries,no,6,350,8,9,400,40000,8,Yes
+74,Thanksgiving,Crunch Berries,no,5,400,5,7,400,30000,2,No
+75,Fourth of July,Crunch Berries,no,14,300,3,8,1000,43000,2,No
+76,Flag Day,Crunch Berries,no,5,450,10,8,400,35000,1,No
+77,Thanksgiving,Crunch Berries,no,5,350,2,9,400,43000,8,Yes
+78,Fourth of July,Crunch Berries,no,12,400,3,9,750,25000,9,Yes
+79,Flag Day,Crunch Berries,no,6,300,8,7,800,2000,9,Yes
+80,Thanksgiving,Crunch Berries,no,6,450,4,8,1100,2000,1,No

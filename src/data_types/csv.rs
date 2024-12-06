@@ -1,4 +1,4 @@
-use crate::error_types::{CSVError, CSVErrorKind};
+use crate::core::error_types::{CSVError, CSVErrorKind};
 use anyhow::{Error, Result};
 use log::info;
 use std::fmt::Debug;

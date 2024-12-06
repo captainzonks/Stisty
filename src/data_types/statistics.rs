@@ -2,7 +2,7 @@ use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 use crate::functions::stats_math::{
     covariance, differences, mean, pooled_variance, sum_of_squares, variance,
 };
-use crate::logging;
+use crate::core::logging;
 use anyhow::{anyhow, Error};
 use log::info;
 

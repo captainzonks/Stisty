@@ -1,15 +1,18 @@
+pub mod build;
+mod core;
 mod data_types;
-mod error_types;
 mod functions;
-mod logging;
 mod tests;
 
-use crate::logging::{format_title, setup_logger};
+use crate::core::arg_handler::process_args;
 use crate::tests::tests::*;
 use anyhow::Result;
+use clap::{Parser, Subcommand, ValueEnum};
+use core::logging::{format_title, setup_logger};
 use log::info;
-use std::{env, io};
-
+use std::io;
+use std::path::PathBuf;
+use crate::core::menu::menu;
 // ratatui modules
 // use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 // use ratatui::{
@@ -42,27 +45,14 @@ use std::{env, io};
 //     }
 // }
 
-// #[derive(Debug)]
-// struct Config {
-//     csv_file_path: String,
-//     test_name: String,
-// }
-
-// fn parse_args(args: &[String]) -> Config {
-//     Config {
-//         csv_file_path: args[0].clone(),
-//         test_name: args[1].clone(),
-//     }
-// }
-
 fn main() -> Result<()> {
-    // let args: Vec<String> = env::args().collect();
-    // let args = parse_args(&args);
-
     setup_logger().expect("Logging setup failed.");
     info!("{}", format_title(&*"Stisty"));
     info!("{}", format_title(&*""));
-    // info!("{:#?}", args);
+
+    // process_args()?;
+
+    menu().expect("Menu failed!");
 
     //////// ratatui ////////
     // let mut terminal = ratatui::init();
@@ -87,7 +77,8 @@ fn main() -> Result<()> {
     // run_gpa_test().expect("GPA test failed");
     // run_glasses_occupation_likes_test().expect("student eyes test failed");
     // run_anova_sample_test().expect("ANOVA sample test failed.");
-    run_exam_3_review_test().expect("Exam 3 review test failed.");
+    // run_exam_3_review_test().expect("Exam 3 review test failed.");
+    // run_movie_data_test().expect("Movie Data test failed.");
 
     info!("{}", format_title(&*""));
 

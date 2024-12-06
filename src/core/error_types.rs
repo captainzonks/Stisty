@@ -1,4 +1,4 @@
-use crate::error_types::CSVErrorKind::DataExtraction;
+use crate::core::error_types::CSVErrorKind::DataExtraction;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
