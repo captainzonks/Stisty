@@ -1,11 +1,8 @@
-use crate::core::error_types::{CSVError, CSVErrorKind};
+use crate::core::convert;
 use crate::core::convert::Convert;
 use crate::functions::stats_math;
 use anyhow::{anyhow, Error, Result};
 use log::info;
-use crate::core::convert;
-
-const MODULE_NAME: &str = "STATS_MATH";
 
 pub fn mean<T: Copy>(data: &Vec<T>) -> Result<f64, Error>
 where
@@ -94,26 +91,26 @@ where
         }
         (Some(datum), _, Some(data), _, _, _) => {
             info!(
-                "{}: Calculating z-score from provided datum ({}) and data",
-                MODULE_NAME, datum
+                "Calculating z-score from provided datum ({}) and data",
+                datum
             );
             Ok((f64::convert(datum) - mean(data)?) / standard_deviation(Some(data), None, pop)?)
         }
         (Some(datum), _, _, Some(data_mean), Some(sd), _) => {
-            info!("{}: Calculating z-score from provided datum ({}) and mean ({}) and standard deviation ({})", MODULE_NAME, datum, data_mean, sd);
+            info!("Calculating z-score from provided datum ({}) and mean ({}) and standard deviation ({})", datum, data_mean, sd);
             Ok((f64::convert(datum) - data_mean) / sd)
         }
         (_, Some(deviation), Some(data), _, _, _) => {
             info!(
-                "{}: Calculating z-score from provided deviation ({}) and data",
-                MODULE_NAME, deviation
+                "Calculating z-score from provided deviation ({}) and data",
+                deviation
             );
             Ok(deviation / standard_deviation(Some(data), None, pop)?)
         }
         (_, Some(deviation), _, _, Some(sd), _) => {
             info!(
-                "{}: Calculating z-score from provided deviation ({}) and standard deviation ({})",
-                MODULE_NAME, deviation, sd
+                "Calculating z-score from provided deviation ({}) and standard deviation ({})",
+                deviation, sd
             );
             Ok(deviation / sd)
         }

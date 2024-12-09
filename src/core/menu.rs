@@ -1,17 +1,19 @@
 use crate::data_types::csv::{import_csv_data, CSVData};
-use anyhow::{Error, Result};
+use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
+use crate::data_types::statistics::{PairedSamplesT, ANOVA};
+use anyhow::{anyhow, Error, Result};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use inquire::{
     autocompletion::{Autocomplete, Replacement},
-    CustomUserError, Select, Text,
+    CustomType, CustomUserError, Select, Text,
 };
 use log::info;
 use std::env;
 use std::io::ErrorKind;
 use std::path::Path;
 
-pub fn menu() -> Result<(), Error> {
+pub fn main_menu() -> Result<(), Error> {
     let statistics = vec![
         "Single Sample T",
         "Paired Sample T",
@@ -28,7 +30,7 @@ pub fn menu() -> Result<(), Error> {
             .with_help_message(&help_message)
             .prompt();
 
-    let csv_data: CSVData;
+    let mut csv_data: CSVData = CSVData::default();
 
     match csv_file_path_string {
         Ok(path) => {
@@ -45,9 +47,211 @@ pub fn menu() -> Result<(), Error> {
         Err(error) => println!("There was an error retrieving the path: {error:?}"),
     }
 
-    let _statistic = Select::new("What statistic would you like to run?", statistics).prompt()?;
+    let statistic = Select::new("What statistic would you like to run?", statistics).prompt()?;
 
-    info!("Statistic: {:?}", _statistic);
+    match statistic {
+        "Single Sample T" => single_sample_t_menu(&csv_data)?,
+        "Paired Sample T" => paired_sample_t_menu(&csv_data)?,
+        "Independent Groups T" => independent_groups_t_menu(&csv_data)?,
+        "One Way ANOVA" => one_way_anova_menu(&csv_data)?,
+        &_ => {}
+    }
+
+    Ok(())
+}
+
+fn single_sample_t_menu(csv_data: &CSVData) -> Result<(), Error> {
+    let headers = csv_data.headers.clone();
+    let column_header = Select::new(
+        "Please select a column of continuous data as the dependent variable:",
+        headers.clone(),
+    )
+    .prompt()?;
+    let mu =
+        CustomType::<f64>::new("Please enter the population's mean (mu) for the test:").prompt()?;
+
+    let column_index_opt = headers.iter().position(|x| column_header.eq(x));
+    let column_index: usize;
+    match column_index_opt {
+        Some(index) => column_index = index,
+        None => return Err(anyhow!("Error in getting column index")),
+    }
+
+    let column_data = csv_data.get_column::<f64>(column_index, None)?;
+    let continuous_data_array = ContinuousDataArray::new(
+        String::from("PLACEHOLDER"),
+        &column_data,
+        column_index,
+        None,
+    )?;
+
+    let result = crate::data_types::statistics::SingleSampleT::new(
+        String::from("PLACEHOLDER"),
+        String::from("PLACEHOLDER"),
+        &continuous_data_array,
+        mu,
+    )?;
+
+    result.print();
+
+    Ok(())
+}
+
+fn paired_sample_t_menu(csv_data: &CSVData) -> Result<(), Error> {
+    let headers = csv_data.headers.clone();
+    let column_header_x = Select::new(
+        "Please select a column of continuous data as the first measurement:",
+        headers.clone(),
+    )
+    .prompt()?;
+    let column_header_y = Select::new(
+        "Please select a column of continuous data as the second measurement:",
+        headers.clone(),
+    )
+    .prompt()?;
+
+    let mut column_index_option = headers.iter().position(|x| column_header_x.eq(x));
+    let column_x_index: usize;
+    match column_index_option {
+        Some(index) => column_x_index = index,
+        None => return Err(anyhow!("Error in getting first measurement column index")),
+    }
+    column_index_option = headers.iter().position(|y| column_header_y.eq(y));
+    let column_y_index: usize;
+    match column_index_option {
+        Some(index) => column_y_index = index,
+        None => return Err(anyhow!("Error in getting second measurement column index")),
+    }
+
+    let data_x = csv_data.get_column::<f64>(column_x_index, None)?;
+    let data_y = csv_data.get_column::<f64>(column_y_index, None)?;
+
+    let data_array_x =
+        ContinuousDataArray::new(String::from("PLACEHOLDER"), &data_x, column_x_index, None)?;
+    let data_array_y =
+        ContinuousDataArray::new(String::from("PLACEHOLDER"), &data_y, column_y_index, None)?;
+
+    let result = PairedSamplesT::new(
+        String::from("PLACEHOLDER"),
+        String::from("PLACEHOLDER"),
+        &data_array_x,
+        &data_array_y,
+    )?;
+
+    result.print();
+
+    Ok(())
+}
+
+fn independent_groups_t_menu(csv_data: &CSVData) -> Result<(), Error> {
+    let headers = csv_data.headers.clone();
+    let categorical_column_header = Select::new(
+        "Please select a column of categorical data with only two levels as the independent variable:",
+        headers.clone(),
+    )
+    .prompt()?;
+
+    let continuous_column_header = Select::new(
+        "Please select a column of continuous data as the dependent variable:",
+        headers.clone(),
+    )
+    .prompt()?;
+
+    let categorical_column_index_opt = headers.iter().position(|x| categorical_column_header.eq(x));
+    let categorical_column_index: usize;
+    match categorical_column_index_opt {
+        Some(index) => categorical_column_index = index,
+        None => return Err(anyhow!("Error in getting categorical column index")),
+    }
+
+    let continuous_column_index_opt = headers.iter().position(|y| continuous_column_header.eq(y));
+    let continuous_column_index: usize;
+    match continuous_column_index_opt {
+        Some(index) => continuous_column_index = index,
+        None => return Err(anyhow!("Error in getting continuous column index")),
+    }
+
+    let categorical_column_data = csv_data.get_column::<String>(categorical_column_index, None)?;
+    let categorical_data_array = CategoricalDataArray::new(
+        String::from("PLACEHOLDER"),
+        &categorical_column_data,
+        categorical_column_index,
+        None,
+    )?;
+
+    let continuous_column_data = csv_data.get_column::<f64>(continuous_column_index, None)?;
+    let continuous_data_array = ContinuousDataArray::new(
+        String::from("PLACEHOLDER"),
+        &continuous_column_data,
+        continuous_column_index,
+        None,
+    )?;
+
+    let result = crate::data_types::statistics::IndependentGroupsT::new(
+        String::from("PLACEHOLDER"),
+        String::from("PLACEHOLDER"),
+        &categorical_data_array,
+        &continuous_data_array,
+    )?;
+
+    result.print();
+
+    Ok(())
+}
+
+fn one_way_anova_menu(csv_data: &CSVData) -> Result<(), Error> {
+    let headers = csv_data.headers.clone();
+    let categorical_column_header = Select::new(
+        "Please select a column of categorical data with three or more levels as the independent variable:",
+        headers.clone(),
+    )
+    .prompt()?;
+
+    let continuous_column_header = Select::new(
+        "Please select a column of continuous data as the dependent variable:",
+        headers.clone(),
+    )
+    .prompt()?;
+
+    let categorical_column_index_opt = headers.iter().position(|x| categorical_column_header.eq(x));
+    let categorical_column_index: usize;
+    match categorical_column_index_opt {
+        Some(index) => categorical_column_index = index,
+        None => return Err(anyhow!("Error in getting categorical column index")),
+    }
+
+    let continuous_column_index_opt = headers.iter().position(|y| continuous_column_header.eq(y));
+    let continuous_column_index: usize;
+    match continuous_column_index_opt {
+        Some(index) => continuous_column_index = index,
+        None => return Err(anyhow!("Error in getting continuous column index")),
+    }
+
+    let categorical_column_data = csv_data.get_column::<String>(categorical_column_index, None)?;
+    let categorical_data_array = CategoricalDataArray::new(
+        String::from("PLACEHOLDER"),
+        &categorical_column_data,
+        categorical_column_index,
+        None,
+    )?;
+
+    let continuous_column_data = csv_data.get_column::<f64>(continuous_column_index, None)?;
+    let continuous_data_array = ContinuousDataArray::new(
+        String::from("PLACEHOLDER"),
+        &continuous_column_data,
+        continuous_column_index,
+        None,
+    )?;
+
+    let result = ANOVA::new(
+        String::from("PLACEHOLDER"),
+        String::from("PLACEHOLDER"),
+        &categorical_data_array,
+        &continuous_data_array,
+        None,
+    )?;
+
+    result.print();
 
     Ok(())
 }
@@ -94,7 +298,7 @@ impl FilePathCompleter {
 
         // println!("\nUPDATE INPUT: {}\n", self.input);
 
-        let mut input_path = std::path::PathBuf::from(self.input.clone());
+        let input_path = std::path::PathBuf::from(self.input.clone());
 
         let fallback_parent = input_path
             .parent()

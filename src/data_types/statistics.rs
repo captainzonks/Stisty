@@ -1,8 +1,6 @@
-use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
-use crate::functions::stats_math::{
-    covariance, differences, mean, pooled_variance, sum_of_squares, variance,
-};
 use crate::core::logging;
+use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
+use crate::functions::stats_math::{differences, mean, pooled_variance, variance};
 use anyhow::{anyhow, Error};
 use log::info;
 
@@ -153,14 +151,9 @@ impl<'a> PairedSamplesT<'a> {
                 .iter()
                 .map(|x| f64::powi(*x - self._mean_of_differences, 2))
                 .sum::<f64>();
-            self._variance_of_differences = self._sum_of_squares_differences
-                / (data_x.len() as f64
-                    - if self._data_x.population.unwrap_or_default() {
-                        0.0
-                    } else {
-                        1.0
-                    });
-            self._s_sub_d_bar = f64::sqrt(self._variance_of_differences);
+            self._variance_of_differences = self._sum_of_squares_differences / self._df as f64;
+            self._s_sub_d_bar =
+                f64::sqrt(self._variance_of_differences) / f64::sqrt(self._n as f64);
             self.t = (self._mean_of_differences - 0.0) / self._s_sub_d_bar;
 
             self._statistic_run = true;
@@ -175,6 +168,8 @@ impl<'a> PairedSamplesT<'a> {
 
     pub fn print(mut self) {
         if self._statistic_run {
+            info!("df = {}", self._df);
+            info!("Mean of Diff = {}", self._mean_of_differences);
             info!("Paired Sample t = {}", self.t)
         } else {
             self.run_statistic()
@@ -331,6 +326,7 @@ pub struct ZTest<'a> {
 pub struct ANOVA<'a> {
     pub name: String,
     pub description: String,
+    _one_way: bool,
     _level_row_indices: Vec<&'a Vec<usize>>,
     _df_b: usize,
     _df_w: usize,
@@ -359,11 +355,13 @@ impl<'a> ANOVA<'a> {
         description: String,
         categorical_data: &'a CategoricalDataArray,
         continuous_data: &'a ContinuousDataArray,
+        one_way: Option<bool>,
     ) -> anyhow::Result<ANOVA<'a>, Error> {
         if categorical_data.levels.len() >= 3 {
             let mut new_anova = ANOVA {
                 name,
                 description,
+                _one_way: one_way.unwrap_or(true),
                 _level_row_indices: Vec::with_capacity(
                     Vec::<usize>::with_capacity(categorical_data.levels.len()).len(),
                 ),

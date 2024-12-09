@@ -1,7 +1,7 @@
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 // use crate::data_types::multiple_regression::MultipleRegression;
-use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
 use crate::data_types::csv::import_csv_data;
+use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
 // use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
 use anyhow::{Error, Result};
 // use charming::series::{Line, Scatter};
@@ -743,6 +743,7 @@ pub fn run_anova_sample_test() -> Result<(), Error> {
         ),
         &school_data_array,
         &gpa_data_array,
+        None,
     )?;
 
     school_vs_gpa_anova.print();
@@ -773,7 +774,8 @@ pub fn run_exam_3_review_test() -> Result<(), Error> {
         String::from("Drinks vs Headphones"),
         String::from("There is a difference in the means of headphones ownership based on drinks preference."),
         &drinks_data_array,
-        &headphones_data_array
+        &headphones_data_array,
+        None,
     )?;
 
     let drinks_vs_nov_sleep = ANOVA::new(
@@ -783,6 +785,7 @@ pub fn run_exam_3_review_test() -> Result<(), Error> {
         ),
         &drinks_data_array,
         &november_sleep_data_array,
+        None,
     )?;
 
     drinks_vs_headphones_anova.print();
@@ -817,6 +820,7 @@ pub fn run_movie_data_test() -> Result<(), Error> {
         String::from("Decades have trends of popular lengths of films."),
         &decade_data_array,
         &runtime_data_array,
+        None,
     )?;
 
     year_runtime_independent_groups.print();

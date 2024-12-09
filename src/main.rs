@@ -12,7 +12,7 @@ use core::logging::{format_title, setup_logger};
 use log::info;
 use std::io;
 use std::path::PathBuf;
-use crate::core::menu::menu;
+use crate::core::menu::main_menu;
 // ratatui modules
 // use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 // use ratatui::{
@@ -52,7 +52,7 @@ fn main() -> Result<()> {
 
     // process_args()?;
 
-    menu().expect("Menu failed!");
+    main_menu().expect("Menu failed!");
 
     //////// ratatui ////////
     // let mut terminal = ratatui::init();

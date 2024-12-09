@@ -1,6 +1,6 @@
+use crate::core::logging;
 use crate::data_types::data_array::categorical::DataArray as categorical_data_array;
 use crate::data_types::data_array::continuous::DataArray as continuous_data_array;
-use crate::core::logging;
 use anyhow::Error;
 use log::info;
 use std::collections::HashMap;
@@ -156,7 +156,7 @@ impl<'a> CategoricalDataArray<'a> {
         data: &'a Vec<String>,
         column_index: usize,
         population: Option<bool>,
-    ) -> anyhow::Result<CategoricalDataArray, Error> {
+    ) -> anyhow::Result<CategoricalDataArray<'a>, Error> {
         let mut new_data_array: CategoricalDataArray = CategoricalDataArray {
             data_array: categorical::DataArray {
                 data: Vec::with_capacity(data.len()),

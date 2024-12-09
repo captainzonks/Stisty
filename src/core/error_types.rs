@@ -85,9 +85,9 @@ where
                 // error!("{:?}", source);
                 write!(f, "{:?}", source)
             }
-            _ => {
-                write!(f, "error while parsing")
-            }
+            // _ => {
+            //     write!(f, "error while parsing")
+            // }
         }
     }
 }
@@ -116,8 +116,8 @@ where
             // Self::ParseFloatError { source } => Some(source),
             // Self::ParseCharError { source } => Some(source),
             // Self::ParseBoolError { source } => Some(source),
-            Self::DataExtraction { source } => Some(source),
-            _ => None,
+            DataExtraction { source } => Some(source),
+            // _ => None,
         }
     }
 }
