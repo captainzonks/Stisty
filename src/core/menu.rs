@@ -16,7 +16,7 @@ use std::path::Path;
 pub fn main_menu() -> Result<(), Error> {
     let statistics = vec![
         "Single Sample T",
-        "Paired Sample T",
+        "Paired Samples T",
         "Independent Groups T",
         "One Way ANOVA",
     ];
@@ -51,7 +51,7 @@ pub fn main_menu() -> Result<(), Error> {
 
     match statistic {
         "Single Sample T" => single_sample_t_menu(&csv_data)?,
-        "Paired Sample T" => paired_sample_t_menu(&csv_data)?,
+        "Paired Samples T" => paired_samples_t_menu(&csv_data)?,
         "Independent Groups T" => independent_groups_t_menu(&csv_data)?,
         "One Way ANOVA" => one_way_anova_menu(&csv_data)?,
         &_ => {}
@@ -97,7 +97,7 @@ fn single_sample_t_menu(csv_data: &CSVData) -> Result<(), Error> {
     Ok(())
 }
 
-fn paired_sample_t_menu(csv_data: &CSVData) -> Result<(), Error> {
+fn paired_samples_t_menu(csv_data: &CSVData) -> Result<(), Error> {
     let headers = csv_data.headers.clone();
     let column_header_x = Select::new(
         "Please select a column of continuous data as the first measurement:",

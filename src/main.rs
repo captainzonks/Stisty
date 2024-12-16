@@ -4,7 +4,8 @@ mod data_types;
 mod functions;
 mod tests;
 
-use crate::core::arg_handler::process_args;
+use crate::core::arg_handler::{generate_cli, process_args, run_cli};
+use crate::core::menu::main_menu;
 use crate::tests::tests::*;
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
@@ -12,7 +13,6 @@ use core::logging::{format_title, setup_logger};
 use log::info;
 use std::io;
 use std::path::PathBuf;
-use crate::core::menu::main_menu;
 // ratatui modules
 // use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 // use ratatui::{
@@ -50,9 +50,11 @@ fn main() -> Result<()> {
     info!("{}", format_title(&*"Stisty"));
     info!("{}", format_title(&*""));
 
+    run_cli()?;
+
     // process_args()?;
 
-    main_menu().expect("Menu failed!");
+    // main_menu().expect("Menu failed!");
 
     //////// ratatui ////////
     // let mut terminal = ratatui::init();

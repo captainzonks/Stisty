@@ -11,7 +11,7 @@ ratatui = "*"
 crossterm = "*"
 anyhow = "*"
 charming = { version = "*", features = ["html"] }
-clap = { version = "*", features = ["derive"] }
+clap = { version = "*", features = ["derive", "cargo"] }
 clap_complete = "*"
 inquire = "*"
 fuzzy-matcher = "*"
