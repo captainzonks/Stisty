@@ -39,7 +39,7 @@ pub fn import_csv_data(
     Ok(sample_data)
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct CSVData {
     pub data: Vec<String>,
     pub headers: Vec<String>,
@@ -79,8 +79,7 @@ impl CSVData {
     }
 
     /// Retrieves a column of data from CSVData's data vector.
-    /// To imitate CSV row and column indexing, this function allows an option of
-    /// indexing at 1 (it indexes from 0 as default).
+    /// 0-Based Indexing by default, however it allows the option to use 1 instead.
     pub fn get_column<T>(
         &self,
         column: usize,

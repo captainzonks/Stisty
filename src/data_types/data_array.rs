@@ -1,7 +1,7 @@
 use crate::core::logging;
 use crate::data_types::data_array::categorical::DataArray as categorical_data_array;
 use crate::data_types::data_array::continuous::DataArray as continuous_data_array;
-use anyhow::Error;
+use anyhow::{Error, Result};
 use log::info;
 use std::collections::HashMap;
 
@@ -40,7 +40,7 @@ impl ContinuousDataArray {
         data: &Vec<f64>,
         column_index: usize,
         pop: Option<bool>,
-    ) -> anyhow::Result<ContinuousDataArray, Error> {
+    ) -> Result<ContinuousDataArray, Error> {
         let mut new_data_array: ContinuousDataArray = Default::default();
 
         new_data_array.name = name;
@@ -51,8 +51,8 @@ impl ContinuousDataArray {
         new_data_array.data_array.data = data
             .iter()
             .enumerate()
-            .map(|x| -> anyhow::Result<(usize, f64), Error> { Ok((x.0, *x.1)) })
-            .collect::<anyhow::Result<Vec<(usize, f64)>, Error>>()?;
+            .map(|x| -> Result<(usize, f64), Error> { Ok((x.0, *x.1)) })
+            .collect::<Result<Vec<(usize, f64)>, Error>>()?;
 
         // establishes if we need to adjust for sample or pop later for variance calculations
         new_data_array.population = pop;
@@ -156,7 +156,7 @@ impl<'a> CategoricalDataArray<'a> {
         data: &'a Vec<String>,
         column_index: usize,
         population: Option<bool>,
-    ) -> anyhow::Result<CategoricalDataArray<'a>, Error> {
+    ) -> Result<CategoricalDataArray<'a>, Error> {
         let mut new_data_array: CategoricalDataArray = CategoricalDataArray {
             data_array: categorical::DataArray {
                 data: Vec::with_capacity(data.len()),
@@ -171,11 +171,11 @@ impl<'a> CategoricalDataArray<'a> {
         new_data_array.data_array.data = data
             .iter()
             .enumerate()
-            .map(|x| -> anyhow::Result<(usize, &'a String), Error> {
+            .map(|x| -> Result<(usize, &'a String), Error> {
                 new_data_array.levels.entry(x.1).or_insert(vec![]).push(x.0);
                 Ok((x.0, &*x.1))
             })
-            .collect::<anyhow::Result<Vec<(usize, &'a String)>, _>>()?;
+            .collect::<Result<Vec<(usize, &'a String)>, _>>()?;
 
         Ok(new_data_array)
     }

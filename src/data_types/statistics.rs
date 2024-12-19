@@ -1,7 +1,10 @@
+use crate::core::arg_handler::{
+    DescriptionConfig, IndependentGroupsTConfig, PairedSamplesTConfig, SingleSampleTConfig,
+};
 use crate::core::logging;
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 use crate::functions::stats_math::{differences, mean, pooled_variance, variance};
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow, Error, Result};
 use log::info;
 
 #[derive(Debug, Clone)]
@@ -30,7 +33,7 @@ impl<'a> SingleSampleT<'a> {
         description: String,
         data: &'a ContinuousDataArray,
         mu: f64,
-    ) -> anyhow::Result<SingleSampleT<'a>, Error> {
+    ) -> Result<SingleSampleT<'a>, Error> {
         let mut new_sst = SingleSampleT {
             name,
             description,
@@ -44,12 +47,12 @@ impl<'a> SingleSampleT<'a> {
             t: 0.0,
         };
 
-        new_sst.run_statistic()?;
+        // new_sst.run_statistic()?;
 
         Ok(new_sst)
     }
 
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+    fn run_statistic(&mut self) -> Result<(), Error> {
         info!("...Calculating 'Single Sample t'...");
         self._n = self._data.data_array.data.len();
         self._df = self._n - 1;
@@ -67,6 +70,35 @@ impl<'a> SingleSampleT<'a> {
             self.print();
         }
     }
+}
+
+pub fn run_single_sample_t_test(config: SingleSampleTConfig) -> Result<(), Error> {
+    let mut description_config_in: DescriptionConfig = Default::default();
+    if let Some(description_config) = config.description_config {
+        description_config_in = description_config;
+    } else {
+        description_config_in.name = String::from("Single Sample t Test");
+        description_config_in.description = String::from("Single Sample t Test");
+    }
+    let new_data_array: ContinuousDataArray = ContinuousDataArray::new(
+        description_config_in.name.clone(),
+        &config
+            .csv_data
+            .get_column::<f64>(config.column_index, Some(false))?,
+        config.column_index,
+        Some(false),
+    )?;
+
+    let mut new_single_sample_t = SingleSampleT::new(
+        description_config_in.name,
+        description_config_in.description,
+        &new_data_array,
+        config.mu,
+    )?;
+    new_single_sample_t.run_statistic()?;
+    new_single_sample_t.print();
+
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -97,9 +129,9 @@ impl<'a> PairedSamplesT<'a> {
         description: String,
         data_x: &'a ContinuousDataArray,
         data_y: &'a ContinuousDataArray,
-    ) -> anyhow::Result<PairedSamplesT<'a>, Error> {
+    ) -> Result<PairedSamplesT<'a>, Error> {
         if data_x.data_array.data.len() == data_y.data_array.data.len() {
-            let mut new_pst = PairedSamplesT {
+            let new_pst = PairedSamplesT {
                 name,
                 description,
                 _n: data_x.data_array.data.len(),
@@ -115,7 +147,7 @@ impl<'a> PairedSamplesT<'a> {
                 t: 0.0,
             };
 
-            new_pst.run_statistic()?;
+            // new_pst.run_statistic()?;
 
             Ok(new_pst)
         } else {
@@ -123,7 +155,7 @@ impl<'a> PairedSamplesT<'a> {
         }
     }
 
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+    fn run_statistic(&mut self) -> Result<(), Error> {
         if self._data_x.data_array.data.len() == self._data_y.data_array.data.len() {
             info!("...Calculating 'Paired Sample t'...");
 
@@ -179,6 +211,43 @@ impl<'a> PairedSamplesT<'a> {
     }
 }
 
+pub fn run_paired_samples_t_test(config: PairedSamplesTConfig) -> Result<(), Error> {
+    let mut description_config_in: DescriptionConfig = Default::default();
+    if let Some(description_config) = config.description_config {
+        description_config_in = description_config;
+    } else {
+        description_config_in.name = String::from("Paired Samples t Test");
+        description_config_in.description = String::from("Paired Samples t Test");
+    }
+    let new_data_array_x: ContinuousDataArray = ContinuousDataArray::new(
+        description_config_in.name.clone(),
+        &config
+            .csv_data
+            .get_column::<f64>(config.column_indices[0], Some(false))?,
+        config.column_indices[0],
+        Some(false),
+    )?;
+    let new_data_array_y: ContinuousDataArray = ContinuousDataArray::new(
+        description_config_in.name.clone(),
+        &config
+            .csv_data
+            .get_column::<f64>(config.column_indices[1], Some(false))?,
+        config.column_indices[1],
+        Some(false),
+    )?;
+
+    let mut new_paired_samples_t_test = PairedSamplesT::new(
+        description_config_in.name,
+        description_config_in.description,
+        &new_data_array_x,
+        &new_data_array_y,
+    )?;
+    new_paired_samples_t_test.run_statistic()?;
+    new_paired_samples_t_test.print();
+
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 pub struct IndependentGroupsT<'a> {
     pub name: String,
@@ -206,9 +275,9 @@ impl<'a> IndependentGroupsT<'a> {
         description: String,
         categorical_data: &'a CategoricalDataArray,
         continuous_data: &'a ContinuousDataArray,
-    ) -> anyhow::Result<IndependentGroupsT<'a>, Error> {
+    ) -> Result<IndependentGroupsT<'a>, Error> {
         if categorical_data.levels.keys().len() == 2 {
-            let mut new_igt = IndependentGroupsT {
+            let new_igt = IndependentGroupsT {
                 name,
                 description,
                 _level_row_indices: Vec::with_capacity(
@@ -225,15 +294,18 @@ impl<'a> IndependentGroupsT<'a> {
                 t: 0.0,
             };
 
-            new_igt.run_statistic()?;
+            // new_igt.run_statistic()?;
 
             Ok(new_igt)
         } else {
-            Err(anyhow!("A categorical variable with two levels is required to run an independent groups t test"))
+            Err(anyhow!(
+                "A categorical variable with two levels is required to run an independent groups \
+                t test"
+            ))
         }
     }
 
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+    fn run_statistic(&mut self) -> Result<(), Error> {
         self._level_row_indices = self
             ._categorical_data
             .levels
@@ -306,6 +378,46 @@ impl<'a> IndependentGroupsT<'a> {
     }
 }
 
+pub fn run_independent_groups_t_test(config: IndependentGroupsTConfig) -> Result<(), Error> {
+    let mut description_config_in: DescriptionConfig = Default::default();
+    if let Some(description_config) = config.description_config {
+        description_config_in = description_config;
+    } else {
+        description_config_in.name = String::from("Independent Groups t Test");
+        description_config_in.description = String::from("Independent Groups t Test");
+    }
+
+    let categorical_data_column = config
+        .csv_data
+        .get_column::<String>(config.categorical_column_index, Some(false))?;
+
+    let categorical_data_array: CategoricalDataArray = CategoricalDataArray::new(
+        description_config_in.name.clone(),
+        &categorical_data_column,
+        config.categorical_column_index,
+        Some(false),
+    )?;
+    let continuous_data_array: ContinuousDataArray = ContinuousDataArray::new(
+        description_config_in.name.clone(),
+        &config
+            .csv_data
+            .get_column::<f64>(config.continuous_column_index, Some(false))?,
+        config.continuous_column_index,
+        Some(false),
+    )?;
+
+    let mut new_independent_groups_t_test = IndependentGroupsT::new(
+        description_config_in.name,
+        description_config_in.description,
+        &categorical_data_array,
+        &continuous_data_array,
+    )?;
+    new_independent_groups_t_test.run_statistic()?;
+    new_independent_groups_t_test.print();
+
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 pub struct ZTest<'a> {
     pub name: String,
@@ -356,7 +468,7 @@ impl<'a> ANOVA<'a> {
         categorical_data: &'a CategoricalDataArray,
         continuous_data: &'a ContinuousDataArray,
         one_way: Option<bool>,
-    ) -> anyhow::Result<ANOVA<'a>, Error> {
+    ) -> Result<ANOVA<'a>, Error> {
         if categorical_data.levels.len() >= 3 {
             let mut new_anova = ANOVA {
                 name,
@@ -383,11 +495,14 @@ impl<'a> ANOVA<'a> {
 
             Ok(new_anova)
         } else {
-            Err(anyhow!("Categorical data consisting of at least three levels is required for a one way ANOVA test"))
+            Err(anyhow!(
+                "Categorical data consisting of at least three levels is required for a \
+            one way ANOVA test"
+            ))
         }
     }
 
-    fn run_statistic(&mut self) -> anyhow::Result<(), Error> {
+    fn run_statistic(&mut self) -> Result<(), Error> {
         self._level_row_indices = self
             ._categorical_data
             .levels
