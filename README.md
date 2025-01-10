@@ -16,3 +16,7 @@ Night')" -P -c 4 5
 ```ps
 .\Stisty.exe -Cc ..\..\csv-files\final_exam_data.csv -n "Indie Groups Test" -d "Independent Groups t Test on masks and ramen" -I -n 3 -c 7
 ```
+
+```ps
+.\Stisty.exe -Cc ..\..\csv-files\anova_sample.csv -n "ANOVA Test" -d "One Way ANOVA test w/ school and GPA" -A -n 1 -c 4
+```
