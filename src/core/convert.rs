@@ -57,6 +57,7 @@ impl Convert<String> for f64 {
         })
     }
 }
+
 pub fn convert_slice_to_f64<T: Copy>(raw: &[T], offset: f64, scale: f64) -> Result<Vec<f64>, Error>
 where
     f64: Convert<T>,

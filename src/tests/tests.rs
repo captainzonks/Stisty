@@ -1,12 +1,12 @@
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 // use crate::data_types::multiple_regression::MultipleRegression;
+use crate::data_types::csv::import_csv_data;
 use crate::data_types::statistics::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
-use crate::functions::csv::import_csv_data;
 // use crate::functions::stats_math::{covariance, pearson_r_method_1, t_statistic_from_r};
 use anyhow::{Error, Result};
 // use charming::series::{Line, Scatter};
+use log::info;
 use std::path::Path;
-
 // pub fn run_menudo_test() -> Result<(), Error> {
 //     let menudo_file_path = Path::new("./csv-files/menudo.csv");
 //     let menudo_csv_data = import_csv_data(menudo_file_path, None, None)?;
@@ -743,6 +743,7 @@ pub fn run_anova_sample_test() -> Result<(), Error> {
         ),
         &school_data_array,
         &gpa_data_array,
+        None,
     )?;
 
     school_vs_gpa_anova.print();
@@ -773,7 +774,8 @@ pub fn run_exam_3_review_test() -> Result<(), Error> {
         String::from("Drinks vs Headphones"),
         String::from("There is a difference in the means of headphones ownership based on drinks preference."),
         &drinks_data_array,
-        &headphones_data_array
+        &headphones_data_array,
+        None,
     )?;
 
     let drinks_vs_nov_sleep = ANOVA::new(
@@ -783,10 +785,45 @@ pub fn run_exam_3_review_test() -> Result<(), Error> {
         ),
         &drinks_data_array,
         &november_sleep_data_array,
+        None,
     )?;
 
     drinks_vs_headphones_anova.print();
     drinks_vs_nov_sleep.print();
+
+    Ok(())
+}
+
+pub fn run_movie_data_test() -> Result<(), Error> {
+    let movie_path = Path::new("./csv-files/movie_data.csv");
+    let movie_data_csv_data = import_csv_data(movie_path, None, None)?;
+
+    let year_vec = &movie_data_csv_data.get_column::<String>(8, Some(false))?;
+
+    let runtime_hours_vec = &movie_data_csv_data.get_column::<i32>(9, Some(false))?;
+    let runtime_minutes_vec = &movie_data_csv_data.get_column::<i32>(10, Some(false))?;
+    let mut runtime_vec = Vec::with_capacity(year_vec.len());
+
+    let zipped = runtime_hours_vec.iter().zip(runtime_minutes_vec.iter());
+    for (hour, minute) in zipped {
+        let total_minutes = ((hour * 60) + minute) as f64;
+        runtime_vec.push(total_minutes);
+    }
+
+    let decade_data_array =
+        CategoricalDataArray::new(String::from("Year"), &year_vec, 9, Some(false))?;
+    let runtime_data_array =
+        ContinuousDataArray::new(String::from("Runtime"), &runtime_vec, 0, Some(false))?;
+
+    let year_runtime_independent_groups = ANOVA::new(
+        String::from("Runtime vs Decade"),
+        String::from("Decades have trends of popular lengths of films."),
+        &decade_data_array,
+        &runtime_data_array,
+        None,
+    )?;
+
+    year_runtime_independent_groups.print();
 
     Ok(())
 }

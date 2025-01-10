@@ -1,4 +1,4 @@
-use crate::error_types::CSVErrorKind::DataExtraction;
+use crate::core::error_types::CSVErrorKind::DataExtraction;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -84,10 +84,9 @@ where
             DataExtraction { source } => {
                 // error!("{:?}", source);
                 write!(f, "{:?}", source)
-            }
-            _ => {
-                write!(f, "error while parsing")
-            }
+            } // _ => {
+              //     write!(f, "error while parsing")
+              // }
         }
     }
 }
@@ -116,8 +115,8 @@ where
             // Self::ParseFloatError { source } => Some(source),
             // Self::ParseCharError { source } => Some(source),
             // Self::ParseBoolError { source } => Some(source),
-            Self::DataExtraction { source } => Some(source),
-            _ => None,
+            DataExtraction { source } => Some(source),
+            // _ => None,
         }
     }
 }
