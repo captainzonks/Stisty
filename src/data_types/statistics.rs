@@ -1,5 +1,6 @@
 use crate::core::arg_handler::{
-    DescriptionConfig, IndependentGroupsTConfig, PairedSamplesTConfig, SingleSampleTConfig,
+    ANOVAConfig, DescriptionConfig, IndependentGroupsTConfig, PairedSamplesTConfig,
+    SingleSampleTConfig,
 };
 use crate::core::logging;
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
@@ -34,7 +35,7 @@ impl<'a> SingleSampleT<'a> {
         data: &'a ContinuousDataArray,
         mu: f64,
     ) -> Result<SingleSampleT<'a>, Error> {
-        let mut new_sst = SingleSampleT {
+        let new_sst = SingleSampleT {
             name,
             description,
             _n: data.data_array.data.len(),
@@ -491,7 +492,7 @@ impl<'a> ANOVA<'a> {
                 f: 0.0,
             };
 
-            new_anova.run_statistic()?;
+            // new_anova.run_statistic()?;
 
             Ok(new_anova)
         } else {
@@ -586,6 +587,47 @@ impl<'a> ANOVA<'a> {
             self.print();
         }
     }
+}
+
+pub fn run_anova_test(config: ANOVAConfig) -> Result<(), Error> {
+    let mut description_config_in: DescriptionConfig = Default::default();
+    if let Some(description_config) = config.description_config {
+        description_config_in = description_config;
+    } else {
+        description_config_in.name = String::from("ANOVA Test");
+        description_config_in.description = String::from("ANOVA Test");
+    }
+
+    let categorical_data_column = config
+        .csv_data
+        .get_column::<String>(config.categorical_column_index, Some(false))?;
+
+    let categorical_data_array: CategoricalDataArray = CategoricalDataArray::new(
+        description_config_in.name.clone(),
+        &categorical_data_column,
+        config.categorical_column_index,
+        Some(false),
+    )?;
+    let continuous_data_array: ContinuousDataArray = ContinuousDataArray::new(
+        description_config_in.name.clone(),
+        &config
+            .csv_data
+            .get_column::<f64>(config.continuous_column_index, Some(false))?,
+        config.continuous_column_index,
+        Some(false),
+    )?;
+
+    let mut new_anova_test = ANOVA::new(
+        description_config_in.name,
+        description_config_in.description,
+        &categorical_data_array,
+        &continuous_data_array,
+        Some(true),
+    )?;
+    new_anova_test.run_statistic()?;
+    new_anova_test.print();
+
+    Ok(())
 }
 
 //         // y-hat = beta(x) + alpha

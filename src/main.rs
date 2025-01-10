@@ -4,6 +4,7 @@ mod functions;
 mod tests;
 
 use crate::core::arg_handler::run_cli;
+use crate::tests::tests::run_movie_data_test;
 use anyhow::Result;
 use core::logging::{format_title, setup_logger};
 use log::info;
@@ -47,6 +48,8 @@ fn main() -> Result<()> {
     info!("{}", format_title(&*""));
 
     run_cli()?;
+
+    // run_movie_data_test()?;
 
     //////// ratatui ////////
     // let mut terminal = ratatui::init();

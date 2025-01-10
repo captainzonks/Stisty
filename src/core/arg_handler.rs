@@ -1,15 +1,12 @@
 use crate::core::menu::main_menu;
 use crate::data_types::csv::{import_csv_data, CSVData};
 use crate::data_types::statistics::{
-    run_independent_groups_t_test, run_paired_samples_t_test, run_single_sample_t_test,
+    run_anova_test, run_independent_groups_t_test, run_paired_samples_t_test,
+    run_single_sample_t_test,
 };
+
 use anyhow::{anyhow, Error, Result};
-use clap::builder::{PossibleValuesParser, TypedValueParser};
-use clap::parser::ValuesRef;
-use clap::{
-    arg, command, value_parser, Arg, ArgAction, ArgMatches, Args, Command, Parser, Subcommand,
-    ValueEnum,
-};
+use clap::{command, value_parser, Arg, ArgAction, ArgMatches, Command};
 use log::info;
 use std::path::PathBuf;
 
@@ -36,6 +33,14 @@ pub struct PairedSamplesTConfig {
 
 #[derive(Debug, Default, Clone)]
 pub struct IndependentGroupsTConfig {
+    pub csv_data: CSVData,
+    pub description_config: Option<DescriptionConfig>,
+    pub categorical_column_index: usize,
+    pub continuous_column_index: usize,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ANOVAConfig {
     pub csv_data: CSVData,
     pub description_config: Option<DescriptionConfig>,
     pub categorical_column_index: usize,
@@ -176,6 +181,42 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
                                 .value_parser(value_parser!(usize))
                                 .action(ArgAction::Set),
                         ]),
+                    Command::new("ANOVA")
+                        .short_flag('A')
+                        .long_flag("ANOVA")
+                        .about("Run ANOVA Test")
+                        .arg_required_else_help(true)
+                        .args([
+                            Arg::new("nominal")
+                                .short('n')
+                                .long("nominal")
+                                .help(
+                                    "A CSV column index of categorical data (0-based index, 3 or \
+                                    more levels)",
+                                )
+                                .long_help(
+                                    "Provide a column index for data extraction (0-based \
+                                index). They must be categorical data and consist of 3 or more \
+                                levels.",
+                                )
+                                .required(true)
+                                .num_args(1)
+                                .value_parser(value_parser!(usize))
+                                .action(ArgAction::Set),
+                            Arg::new("continuous")
+                                .short('c')
+                                .long("continuous")
+                                .help("A CSV column index of continuous data (0-based index)")
+                                .long_help(
+                                    "Provide a column index for data extraction (0-based \
+                            index). They must be continuous data and align to the provided \
+                            categorical column in expected row indices.",
+                                )
+                                .required(true)
+                                .num_args(1)
+                                .value_parser(value_parser!(usize))
+                                .action(ArgAction::Set),
+                        ]),
                 ]),
         )
         .get_matches();
@@ -184,13 +225,13 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
 }
 
 pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
-    if let menu_mode = matches.get_flag("Menu") {
-        if menu_mode {
-            info!("Starting menu mode operation of Stisty...");
-            main_menu()?;
-            return Ok(());
-        }
+    let menu_mode = matches.get_flag("Menu");
+    if menu_mode {
+        info!("Starting menu mode operation of Stisty...");
+        main_menu()?;
+        return Ok(());
     }
+
     if let Some(matches) = matches.subcommand_matches("Configure") {
         let mut new_csv_data: CSVData = CSVData::default();
         if let Some(csv_file_path_buf) = matches.get_one::<PathBuf>("csv-file") {
@@ -219,6 +260,26 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                         name: file_name.to_string(),
                         description: description.to_string(),
                     }
+                }
+
+                fn get_categorical_continuous_column_indices(
+                    arg_matches: &ArgMatches,
+                ) -> Result<(usize, usize), Error> {
+                    let categorical_column_index_option = arg_matches.get_one::<usize>("nominal");
+                    let continuous_column_index_option = arg_matches.get_one::<usize>("continuous");
+
+                    let categorical_column_index;
+                    let continuous_column_index;
+                    match categorical_column_index_option {
+                        None => return Err(anyhow!("Bad categorical column index")),
+                        Some(index) => categorical_column_index = *index,
+                    }
+                    match continuous_column_index_option {
+                        None => return Err(anyhow!("Bad continuous column index")),
+                        Some(index) => continuous_column_index = *index,
+                    }
+
+                    Ok((categorical_column_index, continuous_column_index))
                 }
 
                 match matches.subcommand() {
@@ -273,30 +334,45 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                         return Ok(());
                     }
                     Some(("Independent Groups t Test", arg_matches)) => {
-                        let categorical_column_index_option =
-                            arg_matches.get_one::<usize>("nominal");
-                        let continuous_column_index_option =
-                            arg_matches.get_one::<usize>("continuous");
+                        // let categorical_column_index_option =
+                        //     arg_matches.get_one::<usize>("nominal");
+                        // let continuous_column_index_option =
+                        //     arg_matches.get_one::<usize>("continuous");
+                        //
+                        // let mut categorical_column_index;
+                        // let mut continuous_column_index;
+                        // match categorical_column_index_option {
+                        //     None => return Err(anyhow!("Bad categorical column index")),
+                        //     Some(index) => categorical_column_index = *index,
+                        // }
+                        // match continuous_column_index_option {
+                        //     None => return Err(anyhow!("Bad continuous column index")),
+                        //     Some(index) => continuous_column_index = *index,
+                        // }
 
-                        let mut categorical_column_index;
-                        let mut continuous_column_index;
-                        match categorical_column_index_option {
-                            None => return Err(anyhow!("Bad categorical column index")),
-                            Some(index) => categorical_column_index = *index,
-                        }
-                        match continuous_column_index_option {
-                            None => return Err(anyhow!("Bad continuous column index")),
-                            Some(index) => continuous_column_index = *index,
-                        }
+                        let indices_tuple = get_categorical_continuous_column_indices(arg_matches)?;
 
                         let independent_groups_t_config = IndependentGroupsTConfig {
                             csv_data: new_csv_data,
                             description_config: Some(new_description_config),
-                            categorical_column_index,
-                            continuous_column_index,
+                            categorical_column_index: indices_tuple.0,
+                            continuous_column_index: indices_tuple.1,
                         };
 
                         run_independent_groups_t_test(independent_groups_t_config)?;
+                        return Ok(());
+                    }
+                    Some(("ANOVA", arg_matches)) => {
+                        let indices_tuple = get_categorical_continuous_column_indices(arg_matches)?;
+
+                        let anova_config = ANOVAConfig {
+                            csv_data: new_csv_data,
+                            description_config: Some(new_description_config),
+                            categorical_column_index: indices_tuple.0,
+                            continuous_column_index: indices_tuple.1,
+                        };
+
+                        run_anova_test(anova_config)?;
                         return Ok(());
                     }
                     _ => {}
