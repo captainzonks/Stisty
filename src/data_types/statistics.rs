@@ -54,16 +54,26 @@ impl<'a> SingleSampleT<'a> {
     }
 
     fn run_statistic(&mut self) -> Result<(), Error> {
+        // t = (x_bar - mu) / (sd / sqrt(n))
+
         info!("...Calculating 'Single Sample t'...");
         self._n = self._data.data_array.data.len();
         self._df = self._n - 1;
-        self.t = (self._data.mean - self._mu) / self._standard_deviation;
+        self.t =
+            (self._data.mean - self._mu) / (self._standard_deviation / f64::sqrt(self._n as f64));
         self._statistic_run = true;
         Ok(())
     }
 
     pub fn print(mut self) {
         if self._statistic_run {
+            info!("Column: {}", self._data.column_header);
+            info!("n: {}", self._n);
+            info!("df: {}", self._df);
+            info!("mean: {}", self._data.mean);
+            info!("mu: {}", self._mu);
+            info!("standard deviation: {}", self._data.standard_deviation);
+            info!("variance: {}", self._data.variance);
             info!("Single Sample t = {}", self.t)
         } else {
             self.run_statistic()
@@ -81,12 +91,14 @@ pub fn run_single_sample_t_test(config: SingleSampleTConfig) -> Result<(), Error
         description_config_in.name = String::from("Single Sample t Test");
         description_config_in.description = String::from("Single Sample t Test");
     }
+
     let new_data_array: ContinuousDataArray = ContinuousDataArray::new(
         description_config_in.name.clone(),
         &config
             .csv_data
             .get_column::<f64>(config.column_index, Some(false))?,
         config.column_index,
+        config.csv_data.headers[config.column_index].clone(),
         Some(false),
     )?;
 
@@ -220,20 +232,24 @@ pub fn run_paired_samples_t_test(config: PairedSamplesTConfig) -> Result<(), Err
         description_config_in.name = String::from("Paired Samples t Test");
         description_config_in.description = String::from("Paired Samples t Test");
     }
+
     let new_data_array_x: ContinuousDataArray = ContinuousDataArray::new(
         description_config_in.name.clone(),
         &config
             .csv_data
             .get_column::<f64>(config.column_indices[0], Some(false))?,
         config.column_indices[0],
+        config.csv_data.headers[config.column_indices[0]].clone(),
         Some(false),
     )?;
+
     let new_data_array_y: ContinuousDataArray = ContinuousDataArray::new(
         description_config_in.name.clone(),
         &config
             .csv_data
             .get_column::<f64>(config.column_indices[1], Some(false))?,
         config.column_indices[1],
+        config.csv_data.headers[config.column_indices[1]].clone(),
         Some(false),
     )?;
 
@@ -254,6 +270,7 @@ pub struct IndependentGroupsT<'a> {
     pub name: String,
     pub description: String,
     _level_row_indices: Vec<&'a Vec<usize>>,
+    _level_names: Vec<String>,
     _df: usize,
 
     // provided
@@ -284,6 +301,7 @@ impl<'a> IndependentGroupsT<'a> {
                 _level_row_indices: Vec::with_capacity(
                     Vec::<usize>::with_capacity(categorical_data.levels.len()).len(),
                 ),
+                _level_names: Vec::with_capacity(categorical_data.levels.len()),
                 _df: 0,
                 _categorical_data: categorical_data,
                 _continuous_data: continuous_data,
@@ -324,9 +342,10 @@ impl<'a> IndependentGroupsT<'a> {
             Vec::with_capacity(self._continuous_data.n);
 
         for (level_name, _) in &self._categorical_data.levels {
+            self._level_names.push(level_name.to_string());
             separated_continuous_data.push(
                 self._categorical_data
-                    .get_level_data(level_name, &self._continuous_data)?,
+                    .get_level_associated_continuous_data(level_name, &self._continuous_data)?,
             );
         }
 
@@ -362,8 +381,8 @@ impl<'a> IndependentGroupsT<'a> {
         if self._statistic_run {
             info!("{}", logging::format_title(&*self.name));
             info!("Description: '{}'", self.description);
-            info!("Level 1: '{}'", self._categorical_data.data_array.data[0].1);
-            info!("Level 2: '{}'", self._categorical_data.data_array.data[1].1);
+            info!("Level 1: '{}'", self._level_names[0]);
+            info!("Level 2: '{}'", self._level_names[1]);
             info!("Variance Level 1: {}", self._variance_level_1);
             info!("Variance Level 2: {}", self._variance_level_2);
             info!("Pooled variance: {}", self._pooled_variance);
@@ -396,14 +415,17 @@ pub fn run_independent_groups_t_test(config: IndependentGroupsTConfig) -> Result
         description_config_in.name.clone(),
         &categorical_data_column,
         config.categorical_column_index,
+        config.csv_data.headers[config.categorical_column_index].clone(),
         Some(false),
     )?;
+
     let continuous_data_array: ContinuousDataArray = ContinuousDataArray::new(
         description_config_in.name.clone(),
         &config
             .csv_data
             .get_column::<f64>(config.continuous_column_index, Some(false))?,
         config.continuous_column_index,
+        config.csv_data.headers[config.continuous_column_index].clone(),
         Some(false),
     )?;
 
@@ -471,7 +493,7 @@ impl<'a> ANOVA<'a> {
         one_way: Option<bool>,
     ) -> Result<ANOVA<'a>, Error> {
         if categorical_data.levels.len() >= 3 {
-            let mut new_anova = ANOVA {
+            let new_anova = ANOVA {
                 name,
                 description,
                 _one_way: one_way.unwrap_or(true),
@@ -519,7 +541,7 @@ impl<'a> ANOVA<'a> {
         for (level_name, _) in self._categorical_data.levels.iter() {
             separated_continuous_data.push(
                 self._categorical_data
-                    .get_level_data(level_name, self._continuous_data)?,
+                    .get_level_associated_continuous_data(level_name, self._continuous_data)?,
             );
         }
 
@@ -606,14 +628,17 @@ pub fn run_anova_test(config: ANOVAConfig) -> Result<(), Error> {
         description_config_in.name.clone(),
         &categorical_data_column,
         config.categorical_column_index,
+        config.csv_data.headers[config.categorical_column_index].clone(),
         Some(false),
     )?;
+
     let continuous_data_array: ContinuousDataArray = ContinuousDataArray::new(
         description_config_in.name.clone(),
         &config
             .csv_data
             .get_column::<f64>(config.continuous_column_index, Some(false))?,
         config.continuous_column_index,
+        config.csv_data.headers[config.continuous_column_index].clone(),
         Some(false),
     )?;
 
@@ -628,6 +653,144 @@ pub fn run_anova_test(config: ANOVAConfig) -> Result<(), Error> {
     new_anova_test.print();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
+    // use crate::data_types::csv::generate_dummy_csv;
+    use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
+    use anyhow::{Error, Result};
+
+    #[test]
+    fn single_sample_t_is_ok() -> Result<(), Error> {
+        // let dummy_data = generate_dummy_csv();
+        let continuous_data_array = ContinuousDataArray::new(
+            String::from("Continuous Data Array"),
+            &vec![22.0, 13.2, 7.9, 0.1, 9.34, 42.722],
+            0,
+            String::from("Dummy test data"),
+            None,
+        )?;
+        let mut test = SingleSampleT::new(
+            String::from("Single Sample t Test"),
+            String::from("Single Sample t Test"),
+            &continuous_data_array,
+            11.6,
+        )?;
+        test.run_statistic()?;
+
+        // round the float off to test against value obtained from R function
+        assert_eq!(f64::round(test.t * 10000000.0) / 10000000.0, 0.6998041);
+        Ok(())
+    }
+
+    #[test]
+    fn paired_samples_t_is_ok() -> Result<(), Error> {
+        let continuous_data_array_01 = ContinuousDataArray::new(
+            String::from("Continuous Data Array"),
+            &vec![51.2, 63.44, 98.10, 10.5, 36.7, 92.32],
+            0,
+            String::from("Dummy continuous test data 1"),
+            None,
+        )?;
+
+        let continuous_data_array_02 = ContinuousDataArray::new(
+            String::from("Continuous Data Array"),
+            &vec![152.2, 124.9, 177.0, 110.4, 75.2, 189.77],
+            1,
+            String::from("Dummy continuous test data 2"),
+            None,
+        )?;
+
+        let mut test = PairedSamplesT::new(
+            String::from("Paired Samples t Test"),
+            String::from("Paired Samples t Test"),
+            &continuous_data_array_01,
+            &continuous_data_array_02,
+        )?;
+        test.run_statistic()?;
+
+        // round the float off to test against value obtained from R function
+        assert_eq!(f64::round(test.t * 1000000.0) / 1000000.0, 7.692046);
+
+        Ok(())
+    }
+
+    #[test]
+    fn independent_groups_t_is_ok() -> Result<(), Error> {
+        // let dummy_data = generate_dummy_csv();
+        let categorical_strings = String::from("Yes Yes Yes Yes No No No Yes")
+            .split(' ')
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+
+        let categorical_data_array = CategoricalDataArray::new(
+            String::from("Categorical Data Array"),
+            &categorical_strings,
+            0,
+            String::from("Dummy categorical test data"),
+            None,
+        )?;
+
+        let continuous_data_array = ContinuousDataArray::new(
+            String::from("Continuous Data Array"),
+            &vec![12.0, 56.2, 32.9, 9.34, 41.21, 16.01, 2.0, 8.999],
+            1,
+            String::from("Dummy continuous test data"),
+            None,
+        )?;
+
+        let mut test = IndependentGroupsT::new(
+            String::from("Independent Groups t Test"),
+            String::from("Independent Groups t Test"),
+            &categorical_data_array,
+            &continuous_data_array,
+        )?;
+        test.run_statistic()?;
+
+        // round the float off to test against value obtained from R function
+        assert_eq!(f64::round(f64::abs(test.t) * 10000000.0) / 10000000.0, 0.2788283);
+
+        Ok(())
+    }
+
+    #[test]
+    fn one_way_anova_is_ok() -> Result<(), Error> {
+        let categorical_strings = String::from("Red Blue Blue Red Green Blue Red Blue")
+            .split(' ')
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+
+        let categorical_data_array = CategoricalDataArray::new(
+            String::from("Categorical Data Array"),
+            &categorical_strings,
+            0,
+            String::from("Dummy categorical test data"),
+            None,
+        )?;
+
+        let continuous_data_array = ContinuousDataArray::new(
+            String::from("Continuous Data Array"),
+            &vec![77.2, 89.3, 12.1, 99.9, 2.4, 15.6, 25.66, 98.101],
+            1,
+            String::from("Dummy continuous test data"),
+            None,
+        )?;
+
+        let mut test = ANOVA::new(
+            String::from("One Way ANOVA Test"),
+            String::from("One Way ANOVA Test"),
+            &categorical_data_array,
+            &continuous_data_array,
+            Some(true),
+        )?;
+        test.run_statistic()?;
+
+        assert_eq!(f64::round(test.f * 1000.0) / 1000.0, 0.859);
+
+        Ok(())
+    }
 }
 
 //         // y-hat = beta(x) + alpha

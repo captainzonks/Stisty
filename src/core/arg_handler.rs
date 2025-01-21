@@ -237,13 +237,12 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
         if let Some(csv_file_path_buf) = matches.get_one::<PathBuf>("csv-file") {
             if csv_file_path_buf.as_path().is_file() {
                 info!("Path is good; CSV file found!");
-                info!("Importing CSV...");
                 new_csv_data = import_csv_data(csv_file_path_buf.as_path(), Some(true), None)?;
 
                 let mut file_name: String = String::new();
                 if let Some(name_arg) = matches.get_one::<String>("name") {
                     info!("Found name '{}' to be used for file export", name_arg);
-                    file_name = name_arg.to_string();
+                    file_name = name_arg.clone();
                 }
                 let mut description: String = String::new();
                 if let Some(description_arg) = matches.get_one::<String>("description") {
@@ -251,14 +250,14 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                         "Found description '{}' to be used for file export",
                         description_arg
                     );
-                    description = description_arg.to_string();
+                    description = description_arg.clone();
                 }
 
                 let mut new_description_config: DescriptionConfig = DescriptionConfig::default();
                 if !file_name.is_empty() {
                     new_description_config = DescriptionConfig {
-                        name: file_name.to_string(),
-                        description: description.to_string(),
+                        name: file_name.clone(),
+                        description: description.clone(),
                     }
                 }
 
@@ -334,22 +333,6 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                         return Ok(());
                     }
                     Some(("Independent Groups t Test", arg_matches)) => {
-                        // let categorical_column_index_option =
-                        //     arg_matches.get_one::<usize>("nominal");
-                        // let continuous_column_index_option =
-                        //     arg_matches.get_one::<usize>("continuous");
-                        //
-                        // let mut categorical_column_index;
-                        // let mut continuous_column_index;
-                        // match categorical_column_index_option {
-                        //     None => return Err(anyhow!("Bad categorical column index")),
-                        //     Some(index) => categorical_column_index = *index,
-                        // }
-                        // match continuous_column_index_option {
-                        //     None => return Err(anyhow!("Bad continuous column index")),
-                        //     Some(index) => continuous_column_index = *index,
-                        // }
-
                         let indices_tuple = get_categorical_continuous_column_indices(arg_matches)?;
 
                         let independent_groups_t_config = IndependentGroupsTConfig {

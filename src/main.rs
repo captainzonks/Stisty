@@ -1,15 +1,14 @@
-mod core;
-mod data_types;
-mod functions;
-mod tests;
-
-use crate::core::arg_handler::run_cli;
-use crate::tests::tests::run_movie_data_test;
-use anyhow::Result;
-use core::logging::{format_title, setup_logger};
-use log::info;
-use std::io;
-use std::path::PathBuf;
+// mod core;
+// mod data_types;
+// mod functions;
+// mod tests;
+//
+// use crate::core::arg_handler::run_cli;
+// use anyhow::Result;
+// use core::logging::{format_title, setup_logger};
+// use log::info;
+// use std::io;
+// use std::path::PathBuf;
 // ratatui modules
 // use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 // use ratatui::{
@@ -42,14 +41,16 @@ use std::path::PathBuf;
 //     }
 // }
 
+use anyhow::Result;
+use stisty_lib::core::arg_handler::run_cli;
+use stisty_lib::core::logging::{format_title, setup_logger};
+
 fn main() -> Result<()> {
     setup_logger().expect("Logging setup failed.");
-    info!("{}", format_title(&*"Stisty"));
-    info!("{}", format_title(&*""));
+    log::info!("{}", format_title(&*"Stisty"));
+    log::info!("{}", format_title(&*""));
 
     run_cli()?;
-
-    // run_movie_data_test()?;
 
     //////// ratatui ////////
     // let mut terminal = ratatui::init();
@@ -58,7 +59,7 @@ fn main() -> Result<()> {
     // ratatui::restore();
     // app_result
 
-    info!("{}", format_title(&*""));
+    log::info!("{}", format_title(&*""));
 
     Ok(())
 }

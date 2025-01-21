@@ -82,6 +82,7 @@ fn single_sample_t_menu(csv_data: &CSVData) -> Result<(), Error> {
         String::from("PLACEHOLDER"),
         &column_data,
         column_index,
+        csv_data.headers[column_index].clone(),
         None,
     )?;
 
@@ -126,10 +127,20 @@ fn paired_samples_t_menu(csv_data: &CSVData) -> Result<(), Error> {
     let data_x = csv_data.get_column::<f64>(column_x_index, None)?;
     let data_y = csv_data.get_column::<f64>(column_y_index, None)?;
 
-    let data_array_x =
-        ContinuousDataArray::new(String::from("PLACEHOLDER"), &data_x, column_x_index, None)?;
-    let data_array_y =
-        ContinuousDataArray::new(String::from("PLACEHOLDER"), &data_y, column_y_index, None)?;
+    let data_array_x = ContinuousDataArray::new(
+        String::from("PLACEHOLDER"),
+        &data_x,
+        column_x_index,
+        csv_data.headers[column_x_index].clone(),
+        None,
+    )?;
+    let data_array_y = ContinuousDataArray::new(
+        String::from("PLACEHOLDER"),
+        &data_y,
+        column_y_index,
+        csv_data.headers[column_y_index].clone(),
+        None,
+    )?;
 
     let result = PairedSamplesT::new(
         String::from("PLACEHOLDER"),
@@ -176,6 +187,7 @@ fn independent_groups_t_menu(csv_data: &CSVData) -> Result<(), Error> {
         String::from("PLACEHOLDER"),
         &categorical_column_data,
         categorical_column_index,
+        csv_data.headers[categorical_column_index].clone(),
         None,
     )?;
 
@@ -184,6 +196,7 @@ fn independent_groups_t_menu(csv_data: &CSVData) -> Result<(), Error> {
         String::from("PLACEHOLDER"),
         &continuous_column_data,
         continuous_column_index,
+        csv_data.headers[continuous_column_index].clone(),
         None,
     )?;
 
@@ -232,6 +245,7 @@ fn one_way_anova_menu(csv_data: &CSVData) -> Result<(), Error> {
         String::from("PLACEHOLDER"),
         &categorical_column_data,
         categorical_column_index,
+        csv_data.headers[categorical_column_index].clone(),
         None,
     )?;
 
@@ -240,6 +254,7 @@ fn one_way_anova_menu(csv_data: &CSVData) -> Result<(), Error> {
         String::from("PLACEHOLDER"),
         &continuous_column_data,
         continuous_column_index,
+        csv_data.headers[continuous_column_index].clone(),
         None,
     )?;
 

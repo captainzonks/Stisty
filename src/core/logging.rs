@@ -19,11 +19,14 @@ use log4rs::{
 };
 
 pub fn setup_logger() -> Result<(), SetLoggerError> {
-    let level = log::LevelFilter::Info;
+    let level = LevelFilter::Info;
 
     // Build a stderr logger.
-    let stderr = ConsoleAppender::builder().target(Target::Stderr)
-        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)(local)} {l}: {m}{n}")))
+    let stderr = ConsoleAppender::builder()
+        .target(Target::Stderr)
+        .encoder(Box::new(PatternEncoder::new(
+            "{d(%Y-%m-%d %H:%M:%S)(local)} {l}: {m}{n}",
+        )))
         .build();
 
     // Create a policy to use with the file logging
@@ -35,7 +38,9 @@ pub fn setup_logger() -> Result<(), SetLoggerError> {
 
     // Logging to log file. (with rolling)
     let logfile = log4rs::append::rolling_file::RollingFileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d(%Y-%m-%d %H:%M:%S)(local)} {l}: {m}{n}")))
+        .encoder(Box::new(PatternEncoder::new(
+            "{d(%Y-%m-%d %H:%M:%S)(local)} {l}: {m}{n}",
+        )))
         .build(FILE_PATH, Box::new(policy))
         .unwrap();
 

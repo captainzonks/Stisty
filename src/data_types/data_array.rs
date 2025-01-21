@@ -23,6 +23,7 @@ pub(self) mod categorical {
 pub struct ContinuousDataArray {
     pub data_array: continuous_data_array,
     pub column_index: usize,
+    pub column_header: String,
     pub name: String,
     pub population: Option<bool>,
     pub n: usize,
@@ -39,23 +40,45 @@ impl ContinuousDataArray {
         name: String,
         data: &Vec<f64>,
         column_index: usize,
+        column_header: String,
         pop: Option<bool>,
     ) -> Result<ContinuousDataArray, Error> {
-        let mut new_data_array: ContinuousDataArray = Default::default();
+        info!("Creating ContinuousDataArray...");
+        let mut new_data_array: ContinuousDataArray = ContinuousDataArray {
+            data_array: continuous_data_array {
+                // collect into a vector of tuple (row_num, datum), where rows start at 1 (header is 0)
+                data: data
+                    .iter()
+                    .enumerate()
+                    .map(|x| -> Result<(usize, f64), Error> { Ok((x.0, *x.1)) })
+                    .collect::<Result<Vec<(usize, f64)>, Error>>()?,
+            },
+            column_index,
+            column_header,
+            name,
+            // establishes if we need to adjust for sample or pop later for variance calculations
+            population: pop,
+            n: data.len(),
+            mean: 0.0,
+            sum_of_squares: 0.0,
+            deviations: vec![],
+            variance: 0.0,
+            standard_deviation: 0.0,
+            z_scores: vec![],
+        };
 
-        new_data_array.name = name;
-        new_data_array.column_index = column_index;
-        new_data_array.n = data.len();
+        // new_data_array.name = name;
+        // new_data_array.column_index = column_index;
+        // new_data_array.column_header = column_header;
+        // new_data_array.n = data.len();
 
-        // collect into a vector of tuple (row_num, datum), where rows start at 1 (header is 0)
-        new_data_array.data_array.data = data
-            .iter()
-            .enumerate()
-            .map(|x| -> Result<(usize, f64), Error> { Ok((x.0, *x.1)) })
-            .collect::<Result<Vec<(usize, f64)>, Error>>()?;
+        // new_data_array.data_array.data = data
+        //     .iter()
+        //     .enumerate()
+        //     .map(|x| -> Result<(usize, f64), Error> { Ok((x.0, *x.1)) })
+        //     .collect::<Result<Vec<(usize, f64)>, Error>>()?;
 
-        // establishes if we need to adjust for sample or pop later for variance calculations
-        new_data_array.population = pop;
+        // new_data_array.population = pop;
 
         // mean = sum(x_i) / N
         new_data_array.mean = new_data_array
@@ -103,21 +126,7 @@ impl ContinuousDataArray {
             .map(|x| x.1 / new_data_array.standard_deviation)
             .collect();
 
-        // pub fn get_probability_density(&self, x: f64) -> Result<f64, Error> {
-        //     let fraction = 1.0 / f64::sqrt(2.0 * PI * self.variance);
-        //     let e_exponential = E.powf(-f64::powi((x - self.mean), 2) / (2.0 * self.variance));
-        //     Ok(fraction * e_exponential)
-        // }
-
-        // raw = deviation + mean
-        // pub fn get_raw_scores_from_deviations(&self) -> Result<Vec<f64>, Error> {
-        //     Ok(self.deviations.iter().map(|x| *x + self.mean).collect())
-        // }
-
-        // pub fn get_single_t(&self, mu: f64) -> Result<f64, Error> {
-        //     Ok((self.mean - mu) / (self.standard_deviation / f64::sqrt(self.data.len() as f64)))
-        // }
-
+        info!("ContinuousDataArray successfully created!");
         Ok(new_data_array)
     }
 
@@ -138,12 +147,28 @@ impl ContinuousDataArray {
         info!("Standard deviation............{}", self.standard_deviation);
         // debug!("Z-Scores: {:?}", self.z_scores.clone().unwrap_or_default());
     }
+
+    // pub fn get_probability_density(&self, x: f64) -> Result<f64, Error> {
+    //     let fraction = 1.0 / f64::sqrt(2.0 * PI * self.variance);
+    //     let e_exponential = E.powf(-f64::powi((x - self.mean), 2) / (2.0 * self.variance));
+    //     Ok(fraction * e_exponential)
+    // }
+
+    // raw = deviation + mean
+    // pub fn get_raw_scores_from_deviations(&self) -> Result<Vec<f64>, Error> {
+    //     Ok(self.deviations.iter().map(|x| *x + self.mean).collect())
+    // }
+
+    // pub fn get_single_t(&self, mu: f64) -> Result<f64, Error> {
+    //     Ok((self.mean - mu) / (self.standard_deviation / f64::sqrt(self.data.len() as f64)))
+    // }
 }
 
 #[derive(Clone, Debug)]
 pub struct CategoricalDataArray<'a> {
     pub data_array: categorical_data_array<'a>,
     pub column_index: usize,
+    pub column_header: String,
     pub name: String,
     pub population: Option<bool>,
     pub n: usize,
@@ -155,13 +180,16 @@ impl<'a> CategoricalDataArray<'a> {
         name: String,
         data: &'a Vec<String>,
         column_index: usize,
+        column_header: String,
         population: Option<bool>,
     ) -> Result<CategoricalDataArray<'a>, Error> {
+        info!("Creating CategoricalDataArray...");
         let mut new_data_array: CategoricalDataArray = CategoricalDataArray {
             data_array: categorical::DataArray {
                 data: Vec::with_capacity(data.len()),
             },
             column_index,
+            column_header,
             name,
             population,
             n: data.len(),
@@ -177,6 +205,7 @@ impl<'a> CategoricalDataArray<'a> {
             })
             .collect::<Result<Vec<(usize, &'a String)>, _>>()?;
 
+        info!("CategoricalDataArray successfully created!");
         Ok(new_data_array)
     }
 
@@ -207,25 +236,7 @@ impl<'a> CategoricalDataArray<'a> {
             .collect::<Vec<&usize>>()
     }
 
-    // pub fn retrieve_level_and_indices(&self, level_name: String) -> Vec<(&usize, &String)> {
-    //     let indices = self.retrieve_level_indices(level_name);
-    //     let mut iter = indices.into_iter();
-    //     let mut index = iter.next();
-    //     self.data_array
-    //         .data
-    //         .iter()
-    //         .filter_map(|(key, value)| {
-    //             if index.is_some() && *key == *index.unwrap() {
-    //                 index = iter.next();
-    //                 Some((key, *value))
-    //             } else {
-    //                 None
-    //             }
-    //         })
-    //         .collect::<Vec<(&usize, &String)>>()
-    // }
-
-    pub fn get_level_data(
+    pub fn get_level_associated_continuous_data(
         &self,
         level_name: &String,
         continuous_data: &'a ContinuousDataArray,
@@ -246,5 +257,60 @@ impl<'a> CategoricalDataArray<'a> {
                 }
             })
             .collect::<Vec<&f64>>())
+    }
+
+    // pub fn retrieve_level_and_indices(&self, level_name: String) -> Vec<(&usize, &String)> {
+    //     let indices = self.retrieve_level_indices(level_name);
+    //     let mut iter = indices.into_iter();
+    //     let mut index = iter.next();
+    //     self.data_array
+    //         .data
+    //         .iter()
+    //         .filter_map(|(key, value)| {
+    //             if index.is_some() && *key == *index.unwrap() {
+    //                 index = iter.next();
+    //                 Some((key, *value))
+    //             } else {
+    //                 None
+    //             }
+    //         })
+    //         .collect::<Vec<(&usize, &String)>>()
+    // }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::data_types::csv::generate_dummy_csv;
+    use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
+    use anyhow::{Error, Result};
+
+    #[test]
+    fn continuous_data_array_is_ok() -> Result<(), Error> {
+        let dummy_csv = generate_dummy_csv();
+        let binding = &dummy_csv.get_column::<f64>(1, None)?;
+        let test_continuous_data_array = ContinuousDataArray::new(
+            String::from("ContinuousDataArray"),
+            binding,
+            1,
+            dummy_csv.headers[1].clone(),
+            None,
+        );
+        assert!(test_continuous_data_array.is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn categorical_data_array_is_ok() -> Result<(), Error> {
+        let dummy_csv = generate_dummy_csv();
+        let binding = &dummy_csv.get_column::<String>(2, None)?;
+        let test_categorical_data_array = CategoricalDataArray::new(
+            String::from("ContinuousDataArray"),
+            binding,
+            2,
+            dummy_csv.headers[2].clone(),
+            None,
+        );
+        assert!(test_categorical_data_array.is_ok());
+        Ok(())
     }
 }
