@@ -3,15 +3,27 @@ name = "Stisty"
 version = "0.1.0-alpha"
 edition = "2021"
 
+[[bin]]
+name = "stisty"
+path = "src/main.rs"
+
+[lib]
+name = "stisty_lib"
+path = "src/lib.rs"
+
 [dependencies]
-csv = "*"
-log = "*"
-log4rs = "*"
-ratatui = "*"
-crossterm = "*"
-anyhow = "*"
-charming = { version = "*", features = ["html"] }
-clap = { version = "*", features = ["derive", "cargo"] }
-clap_complete = "*"
-inquire = "*"
-fuzzy-matcher = "*"
+csv = "1.3.1"
+log = "0.4.25"
+log4rs = "1.3.0"
+ratatui = "0.30.0-alpha.0"
+crossterm = "0.28.1"
+anyhow = "1.0.95"
+charming = { version = "0.4.0", features = ["html"] }
+clap = { version = "4.5.26", features = ["derive", "cargo"] }
+clap_complete = "4.5.42"
+inquire = "0.7.5"
+fuzzy-matcher = "0.3.7"
+
+[dev-dependencies]
+assert_cmd = "2.0.16"
+predicates = "3.1.3"
