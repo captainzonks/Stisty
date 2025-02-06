@@ -1,6 +1,6 @@
 use crate::core::error_types::{CSVError, CSVErrorKind};
 use anyhow::{Error, Result};
-use log::{debug, info};
+use log::{info};
 use std::fmt::Debug;
 use std::path::Path;
 use std::str::FromStr;
@@ -102,7 +102,7 @@ impl CSVData {
     /// Retrieves a single datum from CSVData's data vector as if it were a 2D array.
     /// To imitate CSV row and column indexing, this function allows an option of
     /// indexing at 1 (it indexes from 0 as default).
-    pub fn get_datum<T>(
+    fn get_datum<T>(
         &self,
         row: usize,
         column: usize,
@@ -147,12 +147,12 @@ pub(crate) fn generate_dummy_csv() -> CSVData {
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_dummy_csv, import_csv_data};
+    use super::{import_csv_data, generate_dummy_csv};
     use std::path::Path;
 
     #[test]
     fn csv_data_is_ok() {
-        let test_data_path: &Path = Path::new("./csv-files/test_data.csv");
+        let test_data_path: &Path = Path::new("tests/test_data.csv");
         let csv_import_result = import_csv_data(test_data_path, None, None);
         assert!(csv_import_result.is_ok());
     }

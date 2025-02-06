@@ -8,7 +8,7 @@ use std::str::FromStr;
 #[non_exhaustive]
 pub struct CSVError<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
 {
     pub row: usize,
     pub column: usize,
@@ -18,7 +18,7 @@ where
 
 impl<T> Display for CSVError<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
     <T as FromStr>::Err: Debug + Error + 'static,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -32,7 +32,7 @@ where
 
 impl<T> Debug for CSVError<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
     <T as FromStr>::Err: Debug + Error + 'static,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -47,7 +47,7 @@ where
 
 impl<T> Error for CSVError<T>
 where
-    T: FromStr + 'static,
+    T: FromStr + 'static + Clone,
     <T as FromStr>::Err: Error,
 {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
@@ -55,10 +55,26 @@ where
     }
 }
 
+impl<T> Clone for CSVError<T>
+where
+    T: FromStr + Clone + 'static,
+    <T as FromStr>::Err: Error + Clone,
+{
+    fn clone(&self) -> Self {
+        CSVError {
+            row: self.row,
+            column: self.column,
+            value: self.value.clone(),
+            kind: self.kind.clone(),
+        }
+    }
+}
+
 #[non_exhaustive]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum CSVErrorKind<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
 {
     // ParseError { source: ParseError },
     // ParseIntError { source: ParseIntError },
@@ -70,7 +86,7 @@ where
 
 impl<T> Display for CSVErrorKind<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
     <T as FromStr>::Err: Debug,
 {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -93,7 +109,7 @@ where
 
 impl<T> Debug for CSVErrorKind<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
     <T as FromStr>::Err: Error + 'static,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -105,7 +121,7 @@ where
 
 impl<T> Error for CSVErrorKind<T>
 where
-    T: FromStr,
+    T: FromStr + Clone,
     <T as FromStr>::Err: Error + 'static,
 {
     fn source(&self) -> Option<&(dyn Error + 'static)> {

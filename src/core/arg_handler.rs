@@ -167,7 +167,7 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
                                 .num_args(1)
                                 .value_parser(value_parser!(usize))
                                 .action(ArgAction::Set),
-                            Arg::new("continuous")
+                            Arg::new("continuous") // duplicate code; can it be fixed?
                                 .short('c')
                                 .long("continuous")
                                 .help("A CSV column index of continuous data (0-based index)")
@@ -203,7 +203,7 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
                                 .num_args(1)
                                 .value_parser(value_parser!(usize))
                                 .action(ArgAction::Set),
-                            Arg::new("continuous")
+                            Arg::new("continuous") // duplicate code; can it be fixed?
                                 .short('c')
                                 .long("continuous")
                                 .help("A CSV column index of continuous data (0-based index)")
@@ -233,7 +233,7 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
     }
 
     if let Some(matches) = matches.subcommand_matches("Configure") {
-        let mut new_csv_data: CSVData = CSVData::default();
+        let new_csv_data: CSVData;
         if let Some(csv_file_path_buf) = matches.get_one::<PathBuf>("csv-file") {
             if csv_file_path_buf.as_path().is_file() {
                 info!("Path is good; CSV file found!");
@@ -288,8 +288,8 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                     Some(("Single Sample t Test", arg_matches)) => {
                         let column_index_option = arg_matches.get_one::<usize>("column");
                         let mu_option = arg_matches.get_one::<f64>("mu");
-                        let mut column_index_arg: usize = 0;
-                        let mut mu_arg: f64 = 0.0;
+                        let column_index_arg;
+                        let mu_arg;
                         match column_index_option {
                             None => return Err(anyhow!("Bad column index")),
                             Some(index) => {
@@ -315,7 +315,7 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                     }
                     Some(("Paired Samples t Test", arg_matches)) => {
                         let column_indices_option = arg_matches.get_many::<usize>("columns");
-                        let mut column_indices_arg = vec![];
+                        let column_indices_arg;
                         match column_indices_option {
                             None => return Err(anyhow!("Bad column indices")),
                             Some(indices) => {
