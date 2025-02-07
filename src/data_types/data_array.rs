@@ -280,9 +280,24 @@ impl<'a> CategoricalDataArray<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::data_types::csv::generate_dummy_csv;
+    use crate::data_types::csv::CSVData;
     use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
     use anyhow::{Error, Result};
+
+    fn generate_dummy_csv() -> CSVData {
+        CSVData::new(
+            String::from("1,15,CO,9,3,2,27,MI,7,2,3,18,NY,6,5")
+                .split(',')
+                .map(|s| s.to_string())
+                .collect(),
+            String::from("Participant,Age,State,Stress Before Exam,Stress After Exam")
+                .split(',')
+                .map(|s| s.to_string())
+                .collect(),
+            5,
+            3,
+        )
+    }
 
     #[test]
     fn continuous_data_array_is_ok() -> Result<(), Error> {

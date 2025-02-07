@@ -1,2 +1,2 @@
-pub mod stats_math;
 pub mod graph;
+pub mod stats_math;

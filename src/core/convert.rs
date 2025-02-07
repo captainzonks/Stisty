@@ -52,9 +52,7 @@ impl Convert<&f64> for f64 {
 impl Convert<String> for f64 {
     fn convert(x: String) -> Self {
         let parsed = x.parse::<f64>();
-        parsed.unwrap_or_else(|err| {
-            panic!("{}", err)
-        })
+        parsed.unwrap_or_else(|err| panic!("{}", err))
     }
 }
 

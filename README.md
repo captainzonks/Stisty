@@ -5,28 +5,31 @@
 Single Sample t Test
 
 ```ps
-.\stisty.exe -Cc "tests\test_data.csv" -n "Showers: Single Sample t Test" -d "A Single Sample t Test for 
-total showers in a week. Population average = 8." -S -c 4 -m 8
+.\stisty.exe -Cc "\path\to\example.csv" -n "X: Single Sample t Test"\
+ -d "A Single Sample t Test for X. Population average = 8."\
+ -S -c X_column -m population_mean
 ```
 
 Paired Sample t Test
 
 ```ps
-.\Stisty.exe -Cc "tests\test_data.csv" -n "Stress: Paired Samples t Test" -d "A Paired Samples t Test for 
-stress in January and then stress in April." -P -c 6 7
+.\Stisty.exe -Cc "\path\to\example.csv" -n "X/Y: Paired Samples t Test"\
+ -d "A Paired Samples t Test for X and Y."\
+ -P -c X_column Y_column
 ```
 
 Independent Groups t Test
 
 ```ps
-.\Stisty.exe -Cc "tests\test_data.csv" -n "Cars/Rent: Independent Groups t Test" -d "An Independent 
-Groups t Test for rent costs between those who own cars and those who do not." -I -n 3 -c 5
+.\Stisty.exe -Cc "\path\to\example.csv" -n "X/Y: Independent Groups t Test"\
+ -d "An Independent Groups t Test for X and Y."\
+ -I -n numerical_column -c categorical_column
 ```
 
 One Way ANOVA Test
 
 ```ps
-.\Stisty.exe -Cc "tests\test_data.csv" -n "Club/Rent: One Way ANOVA Test" -d "One Way ANOVA Test comparing 
-club membership 
-and rent costs." -A -n 1 -c 5
+.\Stisty.exe -Cc "\path\to\example.csv" -n "X/Y: One Way ANOVA Test"\
+ -d "One Way ANOVA Test comparing X and Y."\
+ -A -n numerical_column -c categorical_column
 ```
