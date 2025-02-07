@@ -1,9 +1,14 @@
 use crate::core::error_types::{CSVError, CSVErrorKind};
 use anyhow::{Error, Result};
-use log::{info};
+use log::info;
+use rust_embed::Embed;
 use std::fmt::Debug;
 use std::path::Path;
 use std::str::FromStr;
+
+#[derive(Embed)]
+#[folder = "$CARGO_MANIFEST_DIR/tests/"]
+struct TestData;
 
 pub fn import_csv_data(
     file_path: &Path,
@@ -130,31 +135,62 @@ impl CSVData {
     }
 }
 
-pub(crate) fn generate_dummy_csv() -> CSVData {
-    CSVData::new(
-        String::from("1,15,CO,9,3,2,27,MI,7,2,3,18,NY,6,5")
-            .split(',')
-            .map(|s| s.to_string())
-            .collect(),
-        String::from("Participant,Age,State,Stress Before Exam,Stress After Exam")
-            .split(',')
-            .map(|s| s.to_string())
-            .collect(),
-        5,
-        3,
-    )
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{import_csv_data, generate_dummy_csv};
-    use std::path::Path;
+    use super::{CSVData, TestData};
+    use anyhow::Error;
+    use csv::ReaderBuilder;
+    // use std::println as info; // for printing to terminal during tests
+
+    fn generate_dummy_csv() -> CSVData {
+        CSVData::new(
+            String::from("1,15,CO,9,3,2,27,MI,7,2,3,18,NY,6,5")
+                .split(',')
+                .map(|s| s.to_string())
+                .collect(),
+            String::from("Participant,Age,State,Stress Before Exam,Stress After Exam")
+                .split(',')
+                .map(|s| s.to_string())
+                .collect(),
+            5,
+            3,
+        )
+    }
 
     #[test]
-    fn csv_data_is_ok() {
-        let test_data_path: &Path = Path::new("tests/test_data.csv");
-        let csv_import_result = import_csv_data(test_data_path, None, None);
-        assert!(csv_import_result.is_ok());
+    fn csv_data_object_creation_is_ok() -> Result<(), Error> {
+        assert!(TestData::iter().count() > 0);
+
+        let csv_test_data_option = TestData::get("test_data.csv");
+        assert!(csv_test_data_option.is_some());
+        let csv_test_data = csv_test_data_option.unwrap();
+        // println!("{:#?}", std::str::from_utf8(csv_test_data.data.as_ref()));
+
+        let mut reader = ReaderBuilder::new().from_reader(csv_test_data.data.as_ref());
+
+        let mut column_count = 0;
+
+        let mut sample_data: CSVData = Default::default();
+
+        sample_data.headers = reader.headers()?.clone().iter().map(String::from).collect();
+
+        for result in reader.records() {
+            assert!(result.is_ok());
+            let record = result?;
+            assert!(record.iter().count() > 0);
+            sample_data.total_columns = record.len();
+            column_count += 1;
+            for string in record.iter() {
+                sample_data.data.push(string.to_string().trim().to_string());
+                // trim in case of whitespace
+            }
+        }
+        sample_data.total_rows = column_count;
+
+        // info!("{:#?}", sample_data);
+        assert_eq!(sample_data.data.is_empty(), false);
+
+        Ok(())
     }
 
     #[test]

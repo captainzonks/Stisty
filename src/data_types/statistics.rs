@@ -750,7 +750,10 @@ mod tests {
         test.run_statistic()?;
 
         // round the float off to test against value obtained from R function
-        assert_eq!(f64::round(f64::abs(test.t) * 10000000.0) / 10000000.0, 0.2788283);
+        assert_eq!(
+            f64::round(f64::abs(test.t) * 10000000.0) / 10000000.0,
+            0.2788283
+        );
 
         Ok(())
     }
