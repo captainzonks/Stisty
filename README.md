@@ -23,7 +23,7 @@ Independent Groups t Test
 ```ps
 .\Stisty.exe -Cc "\path\to\example.csv" -n "X/Y: Independent Groups t Test"\
  -d "An Independent Groups t Test for X and Y."\
- -I -n numerical_column -c categorical_column
+ -I -c continuous_column -n nominal_column
 ```
 
 One Way ANOVA Test
@@ -31,5 +31,5 @@ One Way ANOVA Test
 ```ps
 .\Stisty.exe -Cc "\path\to\example.csv" -n "X/Y: One Way ANOVA Test"\
  -d "One Way ANOVA Test comparing X and Y."\
- -A -n numerical_column -c categorical_column
+ -A -c continuous_column -n nominal_column
 ```
