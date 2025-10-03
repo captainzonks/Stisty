@@ -1,8 +1,8 @@
 use crate::core::menu::main_menu;
 use crate::data_types::csv::{import_csv_data, CSVData};
 use crate::data_types::statistics::{
-    run_anova_test, run_independent_groups_t_test, run_paired_samples_t_test,
-    run_single_sample_t_test,
+    run_anova_test, run_chi_squared_goodness_of_fit_test, run_chi_squared_independence_test,
+    run_independent_groups_t_test, run_paired_samples_t_test, run_single_sample_t_test,
 };
 
 use anyhow::{anyhow, Error, Result};
@@ -45,6 +45,22 @@ pub struct ANOVAConfig {
     pub description_config: Option<DescriptionConfig>,
     pub categorical_column_index: usize,
     pub continuous_column_index: usize,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ChiSquaredGoodnessOfFitConfig {
+    pub csv_data: CSVData,
+    pub description_config: Option<DescriptionConfig>,
+    pub categorical_column_index: usize,
+    pub expected_frequencies: Vec<f64>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ChiSquaredIndependenceConfig {
+    pub csv_data: CSVData,
+    pub description_config: Option<DescriptionConfig>,
+    pub categorical_column_index_1: usize,
+    pub categorical_column_index_2: usize,
 }
 
 pub fn generate_cli() -> Result<ArgMatches, Error> {
@@ -217,6 +233,57 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
                                 .value_parser(value_parser!(usize))
                                 .action(ArgAction::Set),
                         ]),
+                    Command::new("Chi-Squared Goodness of Fit")
+                        .short_flag('G')
+                        .long_flag("goodness-of-fit")
+                        .about("Run Chi-Squared Goodness of Fit Test")
+                        .arg_required_else_help(true)
+                        .args([
+                            Arg::new("categorical")
+                                .short('c')
+                                .long("categorical")
+                                .help("A CSV column index of categorical data (0-based index)")
+                                .long_help(
+                                    "Provide a column index for data extraction (0-based \
+                                index). Must be categorical data.",
+                                )
+                                .required(true)
+                                .num_args(1)
+                                .value_parser(value_parser!(usize))
+                                .action(ArgAction::Set),
+                            Arg::new("expected")
+                                .short('e')
+                                .long("expected")
+                                .help("Expected frequencies for each category (space-separated)")
+                                .long_help(
+                                    "Provide expected frequencies as space-separated numbers. \
+                                The number of expected frequencies must match the number of \
+                                categories in the data.",
+                                )
+                                .required(true)
+                                .num_args(1..)
+                                .value_parser(value_parser!(f64))
+                                .action(ArgAction::Append),
+                        ]),
+                    Command::new("Chi-Squared Test of Independence")
+                        .short_flag('X')
+                        .long_flag("independence")
+                        .about("Run Chi-Squared Test of Independence")
+                        .arg_required_else_help(true)
+                        .args([
+                            Arg::new("categorical-columns")
+                                .short('c')
+                                .long("categorical")
+                                .help("Two CSV column indices of categorical data (0-based index)")
+                                .long_help(
+                                    "Provide two column indices for categorical data extraction \
+                                (0-based index). Both must be categorical data.",
+                                )
+                                .required(true)
+                                .num_args(2)
+                                .value_parser(value_parser!(usize))
+                                .action(ArgAction::Append),
+                        ]),
                 ]),
         )
         .get_matches();
@@ -356,6 +423,60 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                         };
 
                         run_anova_test(anova_config)?;
+                        return Ok(());
+                    }
+                    Some(("Chi-Squared Goodness of Fit", arg_matches)) => {
+                        let categorical_column_index_option = arg_matches.get_one::<usize>("categorical");
+                        let expected_frequencies_option = arg_matches.get_many::<f64>("expected");
+
+                        let categorical_column_index;
+                        let expected_frequencies;
+
+                        match categorical_column_index_option {
+                            None => return Err(anyhow!("Bad categorical column index")),
+                            Some(index) => categorical_column_index = *index,
+                        }
+
+                        match expected_frequencies_option {
+                            None => return Err(anyhow!("Bad expected frequencies")),
+                            Some(freqs) => {
+                                expected_frequencies = freqs.map(|x| *x).collect();
+                            }
+                        }
+
+                        let chi_squared_gof_config = ChiSquaredGoodnessOfFitConfig {
+                            csv_data: new_csv_data,
+                            description_config: Some(new_description_config),
+                            categorical_column_index,
+                            expected_frequencies,
+                        };
+
+                        run_chi_squared_goodness_of_fit_test(chi_squared_gof_config)?;
+                        return Ok(());
+                    }
+                    Some(("Chi-Squared Test of Independence", arg_matches)) => {
+                        let categorical_columns_option = arg_matches.get_many::<usize>("categorical-columns");
+                        let categorical_columns;
+
+                        match categorical_columns_option {
+                            None => return Err(anyhow!("Bad categorical column indices")),
+                            Some(indices) => {
+                                categorical_columns = indices.map(|x| *x).collect::<Vec<usize>>();
+                            }
+                        }
+
+                        if categorical_columns.len() != 2 {
+                            return Err(anyhow!("Exactly two categorical column indices are required"));
+                        }
+
+                        let chi_squared_independence_config = ChiSquaredIndependenceConfig {
+                            csv_data: new_csv_data,
+                            description_config: Some(new_description_config),
+                            categorical_column_index_1: categorical_columns[0],
+                            categorical_column_index_2: categorical_columns[1],
+                        };
+
+                        run_chi_squared_independence_test(chi_squared_independence_config)?;
                         return Ok(());
                     }
                     _ => {}

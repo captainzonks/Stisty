@@ -1,41 +1,41 @@
-Participant,Club,Residence,Car,Showers,Rent,Stress in January,Stress in April
-1,Astronomy,out of state,no,12,350,4,7
-2,Basketball,out of state,no,11,400,5,7
-3,None,out of state,no,6,300,6,7
-4,Astronomy,out of state,no,9,450,4,9
-5,Basketball,out of state,no,10,300,5,5
-6,None,out of state,no,9,400,7,5
-7,Astronomy,out of state,no,11,300,7,5
-8,Basketball,In state,no,10,350,4,6
-9,None,In state,no,3,400,5,6
-10,Astronomy,In state,no,12,500,6,4
-11,Basketball,In state,yes,1,450,4,8
-12,Astronomy,In state,yes,6,400,5,9
-13,Basketball,In state,yes,15,350,6,9
-14,None,In state,yes,8,400,6,7
-15,Astronomy,In state,yes,13,300,7,7
-16,Basketball,In state,yes,16,450,7,7
-17,None,In state,no,6,300,7,9
-18,Astronomy,In state,no,7,400,7,7
-19,Basketball,In state,no,3,300,7,9
-20,None,In state,no,4,450,1,9
-21,Astronomy,In state,no,4,400,8,8
-22,Basketball,In state,no,4,400,5,4
-23,None,out of state,no,2,1100,4,5
-24,None,out of state,no,6,850,9,6
-25,Astronomy,out of state,no,14,900,4,4
-26,Basketball,out of state,yes,10,950,3,5
-27,None,out of state,yes,7,200,9,9
-28,Astronomy,out of state,yes,8,400,3,5
-29,Basketball,out of state,yes,10,900,3,5
-30,None,out of state,yes,5,950,5,5
-31,Astronomy,out of state,no,15,200,4,6
-32,Basketball,out of state,no,11,400,5,6
-33,None,out of state,no,9,350,8,4
-34,Astronomy,out of state,no,12,400,5,4
-35,Basketball,out of state,no,14,300,3,7
-36,None,out of state,no,14,450,4,8
-37,Astronomy,out of state,no,6,350,2,9
-38,Basketball,out of state,no,12,400,3,9
-39,None,out of state,no,9,300,8,7
-40,Astronomy,out of state,no,10,450,4,8
+Participant,Club,Residence,Car,Showers,Rent,Stress in January,Stress in April,Pea_Phenotype,Blood_Type,Eye_Color,Hair_Color,Disease_Status
+1,Astronomy,out of state,no,12,350,4,7,Yellow_Round,A,Brown,Brown,Unaffected
+2,Basketball,out of state,no,11,400,5,7,Yellow_Round,O,Brown,Black,Unaffected
+3,None,out of state,no,6,300,6,7,Yellow_Round,B,Blue,Blonde,Affected
+4,Astronomy,out of state,no,9,450,4,9,Green_Round,A,Brown,Brown,Unaffected
+5,Basketball,out of state,no,10,300,5,5,Yellow_Round,O,Green,Red,Unaffected
+6,None,out of state,no,9,400,7,5,Yellow_Wrinkled,AB,Blue,Blonde,Affected
+7,Astronomy,out of state,no,11,300,7,5,Yellow_Round,A,Brown,Black,Unaffected
+8,Basketball,In state,no,10,350,4,6,Yellow_Round,B,Brown,Brown,Unaffected
+9,None,In state,no,3,400,5,6,Yellow_Round,O,Blue,Blonde,Affected
+10,Astronomy,In state,no,12,500,6,4,Yellow_Wrinkled,A,Brown,Brown,Unaffected
+11,Basketball,In state,yes,1,450,4,8,Yellow_Round,O,Green,Red,Affected
+12,Astronomy,In state,yes,6,400,5,9,Green_Round,A,Brown,Black,Unaffected
+13,Basketball,In state,yes,15,350,6,9,Yellow_Round,B,Blue,Blonde,Affected
+14,None,In state,yes,8,400,6,7,Yellow_Round,O,Brown,Brown,Unaffected
+15,Astronomy,In state,yes,13,300,7,7,Yellow_Round,AB,Brown,Black,Affected
+16,Basketball,In state,yes,16,450,7,7,Yellow_Round,A,Blue,Blonde,Unaffected
+17,None,In state,no,6,300,7,9,Green_Wrinkled,O,Brown,Brown,Affected
+18,Astronomy,In state,no,7,400,7,7,Yellow_Round,B,Green,Red,Unaffected
+19,Basketball,In state,no,3,300,7,9,Yellow_Round,A,Brown,Black,Unaffected
+20,None,In state,no,4,450,1,9,Yellow_Wrinkled,O,Blue,Blonde,Affected
+21,Astronomy,In state,no,4,400,8,8,Yellow_Round,A,Brown,Brown,Unaffected
+22,Basketball,In state,no,4,400,5,4,Yellow_Round,B,Brown,Brown,Unaffected
+23,None,out of state,no,2,1100,4,5,Yellow_Round,O,Blue,Blonde,Affected
+24,None,out of state,no,6,850,9,6,Yellow_Wrinkled,A,Green,Red,Unaffected
+25,Astronomy,out of state,no,14,900,4,4,Yellow_Round,O,Brown,Black,Unaffected
+26,Basketball,out of state,yes,10,950,3,5,Yellow_Round,AB,Blue,Blonde,Affected
+27,None,out of state,yes,7,200,9,9,Green_Round,B,Brown,Brown,Affected
+28,Astronomy,out of state,yes,8,400,3,5,Yellow_Round,A,Brown,Black,Unaffected
+29,Basketball,out of state,yes,10,900,3,5,Yellow_Round,O,Blue,Blonde,Affected
+30,None,out of state,yes,5,950,5,5,Yellow_Round,A,Brown,Brown,Unaffected
+31,Astronomy,out of state,no,15,200,4,6,Yellow_Round,B,Green,Red,Unaffected
+32,Basketball,out of state,no,11,400,5,6,Yellow_Round,O,Brown,Black,Affected
+33,None,out of state,no,9,350,8,4,Yellow_Round,A,Blue,Blonde,Unaffected
+34,Astronomy,out of state,no,12,400,5,4,Yellow_Round,O,Brown,Brown,Unaffected
+35,Basketball,out of state,no,14,300,3,7,Yellow_Round,AB,Brown,Black,Affected
+36,None,out of state,no,14,450,4,8,Yellow_Round,A,Blue,Blonde,Unaffected
+37,Astronomy,out of state,no,6,350,2,9,Yellow_Round,B,Brown,Brown,Unaffected
+38,Basketball,out of state,no,12,400,3,9,Yellow_Round,O,Green,Red,Affected
+39,None,out of state,no,9,300,8,7,Yellow_Round,A,Blue,Blonde,Unaffected
+40,Astronomy,out of state,no,10,450,4,8,Green_Round,O,Brown,Brown,Unaffected

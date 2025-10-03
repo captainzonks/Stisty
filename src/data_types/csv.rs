@@ -1,14 +1,9 @@
 use crate::core::error_types::{CSVError, CSVErrorKind};
 use anyhow::{Error, Result};
 use log::info;
-use rust_embed::Embed;
 use std::fmt::Debug;
 use std::path::Path;
 use std::str::FromStr;
-
-#[derive(Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/tests/"]
-struct TestData;
 
 pub fn import_csv_data(
     file_path: &Path,
@@ -137,10 +132,9 @@ impl CSVData {
 
 #[cfg(test)]
 mod tests {
-    use super::{CSVData, TestData};
+    use super::{import_csv_data, CSVData};
     use anyhow::Error;
-    use csv::ReaderBuilder;
-    // use std::println as info; // for printing to terminal during tests
+    use std::path::Path;
 
     fn generate_dummy_csv() -> CSVData {
         CSVData::new(
@@ -159,36 +153,13 @@ mod tests {
 
     #[test]
     fn csv_data_object_creation_is_ok() -> Result<(), Error> {
-        assert!(TestData::iter().count() > 0);
+        let csv_data = import_csv_data(Path::new("tests/test_data.csv"), Some(true), None)?;
 
-        let csv_test_data_option = TestData::get("test_data.csv");
-        assert!(csv_test_data_option.is_some());
-        let csv_test_data = csv_test_data_option.unwrap();
-        // println!("{:#?}", std::str::from_utf8(csv_test_data.data.as_ref()));
-
-        let mut reader = ReaderBuilder::new().from_reader(csv_test_data.data.as_ref());
-
-        let mut column_count = 0;
-
-        let mut sample_data: CSVData = Default::default();
-
-        sample_data.headers = reader.headers()?.clone().iter().map(String::from).collect();
-
-        for result in reader.records() {
-            assert!(result.is_ok());
-            let record = result?;
-            assert!(record.iter().count() > 0);
-            sample_data.total_columns = record.len();
-            column_count += 1;
-            for string in record.iter() {
-                sample_data.data.push(string.to_string().trim().to_string());
-                // trim in case of whitespace
-            }
-        }
-        sample_data.total_rows = column_count;
-
-        // info!("{:#?}", sample_data);
-        assert_eq!(sample_data.data.is_empty(), false);
+        assert!(!csv_data.data.is_empty());
+        assert!(!csv_data.headers.is_empty());
+        assert_eq!(csv_data.headers[0], "Participant");
+        assert!(csv_data.total_rows > 0);
+        assert!(csv_data.total_columns > 0);
 
         Ok(())
     }
