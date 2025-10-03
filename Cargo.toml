@@ -24,11 +24,11 @@ log = "0.4.28"
 log4rs = "1.4.0"
 #ratatui = "0.30.0-alpha.0"
 #crossterm = "0.28.1"
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 #charming = { version = "0.4.0", features = ["html"] }
-clap = { version = "4.5.47", features = ["derive", "cargo"] }
+clap = { version = "4.5.48", features = ["derive", "cargo"] }
 #clap_complete = "4.5.42"
-inquire = "0.7.5"
+inquire = "0.9.1"
 fuzzy-matcher = "0.3.7"
 
 [dev-dependencies]
