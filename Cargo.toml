@@ -1,7 +1,14 @@
 [package]
 name = "Stisty"
 version = "0.1.0-alpha"
-edition = "2021"
+authors = ["Matt Barham"]
+description = "A command-line statistical analysis tool for CSV data"
+edition = "2024"
+rust-version = "1.90.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/captainzonks/Stisty"
+keywords = ["statistics", "cli", "data-analysis", "csv"]
+categories = ["command-line-utilities", "science"]
 
 [[bin]]
 name = "stisty"
@@ -13,18 +20,18 @@ path = "src/lib.rs"
 
 [dependencies]
 csv = "1.3.1"
-log = "0.4.25"
-log4rs = "1.3.0"
+log = "0.4.28"
+log4rs = "1.4.0"
 #ratatui = "0.30.0-alpha.0"
 #crossterm = "0.28.1"
-anyhow = "1.0.95"
+anyhow = "1.0.100"
 #charming = { version = "0.4.0", features = ["html"] }
-clap = { version = "4.5.28", features = ["derive", "cargo"] }
+clap = { version = "4.5.48", features = ["derive", "cargo"] }
 #clap_complete = "4.5.42"
-inquire = "0.7.5"
+inquire = "0.9.1"
 fuzzy-matcher = "0.3.7"
-rust-embed = { version = "8.5.0", features = ["debug-embed", "interpolate-folder-path"] }
 
 [dev-dependencies]
+tempfile = "3.14.0"
 #assert_cmd = "2.0.16"
 #predicates = "3.1.3"

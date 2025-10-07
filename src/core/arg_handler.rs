@@ -1,9 +1,10 @@
 use crate::core::menu::main_menu;
 use crate::data_types::csv::{import_csv_data, CSVData};
 use crate::data_types::statistics::{
-    run_anova_test, run_independent_groups_t_test, run_paired_samples_t_test,
-    run_single_sample_t_test,
+    run_anova_test, run_chi_squared_goodness_of_fit_test, run_chi_squared_independence_test,
+    run_independent_groups_t_test, run_paired_samples_t_test, run_single_sample_t_test,
 };
+use crate::genetics::{GenomeAnalyzer, GenomeData};
 
 use anyhow::{anyhow, Error, Result};
 use clap::{command, value_parser, Arg, ArgAction, ArgMatches, Command};
@@ -45,6 +46,38 @@ pub struct ANOVAConfig {
     pub description_config: Option<DescriptionConfig>,
     pub categorical_column_index: usize,
     pub continuous_column_index: usize,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ChiSquaredGoodnessOfFitConfig {
+    pub csv_data: CSVData,
+    pub description_config: Option<DescriptionConfig>,
+    pub categorical_column_index: usize,
+    pub expected_frequencies: Vec<f64>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ChiSquaredIndependenceConfig {
+    pub csv_data: CSVData,
+    pub description_config: Option<DescriptionConfig>,
+    pub categorical_column_index_1: usize,
+    pub categorical_column_index_2: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct GenomeConfig {
+    pub genome_file: PathBuf,
+    pub analysis_type: GenomeAnalysisType,
+}
+
+#[derive(Debug, Clone)]
+pub enum GenomeAnalysisType {
+    Summary,
+    LookupSnp { rsid: String },
+    ChromosomeStats { chromosome: String },
+    HeterozygosityRate,
+    AlleleFrequencies,
+    TransitionTransversionRatio,
 }
 
 pub fn generate_cli() -> Result<ArgMatches, Error> {
@@ -217,6 +250,105 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
                                 .value_parser(value_parser!(usize))
                                 .action(ArgAction::Set),
                         ]),
+                    Command::new("Chi-Squared Goodness of Fit")
+                        .short_flag('G')
+                        .long_flag("goodness-of-fit")
+                        .about("Run Chi-Squared Goodness of Fit Test")
+                        .arg_required_else_help(true)
+                        .args([
+                            Arg::new("categorical")
+                                .short('c')
+                                .long("categorical")
+                                .help("A CSV column index of categorical data (0-based index)")
+                                .long_help(
+                                    "Provide a column index for data extraction (0-based \
+                                index). Must be categorical data.",
+                                )
+                                .required(true)
+                                .num_args(1)
+                                .value_parser(value_parser!(usize))
+                                .action(ArgAction::Set),
+                            Arg::new("expected")
+                                .short('e')
+                                .long("expected")
+                                .help("Expected frequencies for each category (space-separated)")
+                                .long_help(
+                                    "Provide expected frequencies as space-separated numbers. \
+                                The number of expected frequencies must match the number of \
+                                categories in the data.",
+                                )
+                                .required(true)
+                                .num_args(1..)
+                                .value_parser(value_parser!(f64))
+                                .action(ArgAction::Append),
+                        ]),
+                    Command::new("Chi-Squared Test of Independence")
+                        .short_flag('X')
+                        .long_flag("independence")
+                        .about("Run Chi-Squared Test of Independence")
+                        .arg_required_else_help(true)
+                        .args([
+                            Arg::new("categorical-columns")
+                                .short('c')
+                                .long("categorical")
+                                .help("Two CSV column indices of categorical data (0-based index)")
+                                .long_help(
+                                    "Provide two column indices for categorical data extraction \
+                                (0-based index). Both must be categorical data.",
+                                )
+                                .required(true)
+                                .num_args(2)
+                                .value_parser(value_parser!(usize))
+                                .action(ArgAction::Append),
+                        ]),
+                ]),
+        )
+        .subcommand(
+            Command::new("Genetics")
+                .short_flag('G')
+                .long_flag("genetics")
+                .about("Analyze genome data from 23andMe or similar services")
+                .arg_required_else_help(true)
+                .arg(
+                    Arg::new("genome-file")
+                        .short('f')
+                        .long("file")
+                        .help("Path to genome data file (23andMe format)")
+                        .required(true)
+                        .value_parser(value_parser!(PathBuf))
+                        .action(ArgAction::Set),
+                )
+                .subcommands([
+                    Command::new("summary")
+                        .about("Generate comprehensive genome summary"),
+                    Command::new("lookup")
+                        .about("Look up a specific SNP by rsid")
+                        .arg(
+                            Arg::new("rsid")
+                                .short('r')
+                                .long("rsid")
+                                .help("SNP identifier (e.g., rs548049170)")
+                                .required(true)
+                                .value_parser(value_parser!(String))
+                                .action(ArgAction::Set),
+                        ),
+                    Command::new("chromosome")
+                        .about("Get statistics for a specific chromosome")
+                        .arg(
+                            Arg::new("chr")
+                                .short('c')
+                                .long("chromosome")
+                                .help("Chromosome number (1-22, X, Y, or MT)")
+                                .required(true)
+                                .value_parser(value_parser!(String))
+                                .action(ArgAction::Set),
+                        ),
+                    Command::new("heterozygosity")
+                        .about("Calculate heterozygosity rate"),
+                    Command::new("alleles")
+                        .about("Calculate allele frequencies"),
+                    Command::new("ts-tv")
+                        .about("Calculate transition/transversion ratio"),
                 ]),
         )
         .get_matches();
@@ -358,6 +490,60 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                         run_anova_test(anova_config)?;
                         return Ok(());
                     }
+                    Some(("Chi-Squared Goodness of Fit", arg_matches)) => {
+                        let categorical_column_index_option = arg_matches.get_one::<usize>("categorical");
+                        let expected_frequencies_option = arg_matches.get_many::<f64>("expected");
+
+                        let categorical_column_index;
+                        let expected_frequencies;
+
+                        match categorical_column_index_option {
+                            None => return Err(anyhow!("Bad categorical column index")),
+                            Some(index) => categorical_column_index = *index,
+                        }
+
+                        match expected_frequencies_option {
+                            None => return Err(anyhow!("Bad expected frequencies")),
+                            Some(freqs) => {
+                                expected_frequencies = freqs.map(|x| *x).collect();
+                            }
+                        }
+
+                        let chi_squared_gof_config = ChiSquaredGoodnessOfFitConfig {
+                            csv_data: new_csv_data,
+                            description_config: Some(new_description_config),
+                            categorical_column_index,
+                            expected_frequencies,
+                        };
+
+                        run_chi_squared_goodness_of_fit_test(chi_squared_gof_config)?;
+                        return Ok(());
+                    }
+                    Some(("Chi-Squared Test of Independence", arg_matches)) => {
+                        let categorical_columns_option = arg_matches.get_many::<usize>("categorical-columns");
+                        let categorical_columns;
+
+                        match categorical_columns_option {
+                            None => return Err(anyhow!("Bad categorical column indices")),
+                            Some(indices) => {
+                                categorical_columns = indices.map(|x| *x).collect::<Vec<usize>>();
+                            }
+                        }
+
+                        if categorical_columns.len() != 2 {
+                            return Err(anyhow!("Exactly two categorical column indices are required"));
+                        }
+
+                        let chi_squared_independence_config = ChiSquaredIndependenceConfig {
+                            csv_data: new_csv_data,
+                            description_config: Some(new_description_config),
+                            categorical_column_index_1: categorical_columns[0],
+                            categorical_column_index_2: categorical_columns[1],
+                        };
+
+                        run_chi_squared_independence_test(chi_squared_independence_config)?;
+                        return Ok(());
+                    }
                     _ => {}
                 }
             } else {
@@ -368,6 +554,83 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                 ));
             }
         }
+    }
+
+    if let Some(matches) = matches.subcommand_matches("Genetics") {
+        let genome_file = matches.get_one::<PathBuf>("genome-file")
+            .ok_or_else(|| anyhow!("Genome file path is required"))?;
+
+        if !genome_file.is_file() {
+            return Err(anyhow!("Genome file not found at {}", genome_file.display()));
+        }
+
+        info!("Loading genome data from {:?}", genome_file);
+        let genome = GenomeData::from_file(genome_file)?;
+        let analyzer = GenomeAnalyzer::new(&genome);
+
+        match matches.subcommand() {
+            Some(("summary", _)) => {
+                let summary = analyzer.generate_summary();
+                println!("{}", summary.display());
+            }
+            Some(("lookup", args)) => {
+                let rsid = args.get_one::<String>("rsid")
+                    .ok_or_else(|| anyhow!("rsid is required"))?;
+
+                match genome.find_snp(rsid) {
+                    Some(snp) => {
+                        println!("\nSNP Information:");
+                        println!("================");
+                        println!("rsid: {}", snp.rsid);
+                        println!("Chromosome: {}", snp.chromosome);
+                        println!("Position: {}", snp.position);
+                        println!("Genotype: {}", snp.genotype);
+                        println!("Type: {}", if snp.is_heterozygous() { "Heterozygous" } else { "Homozygous" });
+                    }
+                    None => {
+                        println!("SNP {} not found in genome data", rsid);
+                    }
+                }
+            }
+            Some(("chromosome", args)) => {
+                let chr = args.get_one::<String>("chr")
+                    .ok_or_else(|| anyhow!("chromosome is required"))?;
+
+                let chr_snps = genome.get_snps_by_chromosome(chr);
+                println!("\nChromosome {} Statistics:", chr);
+                println!("========================");
+                println!("Total SNPs: {}", chr_snps.len());
+
+                let het_count = chr_snps.iter().filter(|snp| snp.is_heterozygous()).count();
+                let het_rate = if !chr_snps.is_empty() {
+                    het_count as f64 / chr_snps.len() as f64
+                } else {
+                    0.0
+                };
+                println!("Heterozygous SNPs: {} ({:.2}%)", het_count, het_rate * 100.0);
+            }
+            Some(("heterozygosity", _)) => {
+                let rate = genome.heterozygosity_rate();
+                println!("\nHeterozygosity Rate: {:.4} ({:.2}%)", rate, rate * 100.0);
+            }
+            Some(("alleles", _)) => {
+                let freqs = analyzer.calculate_allele_frequencies();
+                println!("\nAllele Frequencies:");
+                println!("===================");
+                let mut sorted_freqs: Vec<_> = freqs.iter().collect();
+                sorted_freqs.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+                for (allele, freq) in sorted_freqs {
+                    println!("{}: {:.4} ({:.2}%)", allele, freq, freq * 100.0);
+                }
+            }
+            Some(("ts-tv", _)) => {
+                let ratio = analyzer.transition_transversion_ratio();
+                println!("\nTransition/Transversion Ratio: {:.4}", ratio);
+            }
+            _ => {}
+        }
+
+        return Ok(());
     }
 
     Ok(())

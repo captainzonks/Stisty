@@ -1,12 +1,341 @@
 use crate::core::arg_handler::{
-    ANOVAConfig, DescriptionConfig, IndependentGroupsTConfig, PairedSamplesTConfig,
-    SingleSampleTConfig,
+    ANOVAConfig, ChiSquaredGoodnessOfFitConfig, ChiSquaredIndependenceConfig, DescriptionConfig,
+    IndependentGroupsTConfig, PairedSamplesTConfig, SingleSampleTConfig,
 };
 use crate::core::logging;
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 use crate::functions::stats_math::{differences, mean, pooled_variance, variance};
 use anyhow::{anyhow, Error, Result};
 use log::info;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChiSquaredTestType {
+    GoodnessOfFit,
+    Independence,
+}
+
+#[derive(Debug, Clone)]
+pub struct ChiSquared<'a> {
+    pub name: String,
+    pub description: String,
+    _n: usize,
+    _df: usize,
+    _test_type: ChiSquaredTestType,
+
+    // For Goodness of Fit
+    _categorical_data: Option<&'a CategoricalDataArray<'a>>,
+    _expected_frequencies: Option<Vec<f64>>,
+
+    // For Test of Independence
+    _categorical_data_1: Option<&'a CategoricalDataArray<'a>>,
+    _categorical_data_2: Option<&'a CategoricalDataArray<'a>>,
+    _contingency_table: Vec<Vec<usize>>,
+    _expected_table: Vec<Vec<f64>>,
+
+    // calculated
+    _observed_frequencies: Vec<usize>,
+    _level_names: Vec<String>,
+
+    _statistic_run: bool,
+    pub chi_squared: f64,
+}
+
+impl<'a> ChiSquared<'a> {
+    /// Creates a new Chi-Squared Goodness of Fit test
+    pub fn new_goodness_of_fit(
+        name: String,
+        description: String,
+        categorical_data: &'a CategoricalDataArray<'a>,
+        expected_frequencies: Vec<f64>,
+    ) -> Result<ChiSquared<'a>, Error> {
+        if categorical_data.levels.len() != expected_frequencies.len() {
+            return Err(anyhow!(
+                "Number of expected frequencies ({}) must match number of levels ({})",
+                expected_frequencies.len(),
+                categorical_data.levels.len()
+            ));
+        }
+
+        let new_chi_squared = ChiSquared {
+            name,
+            description,
+            _n: categorical_data.n,
+            _df: categorical_data.levels.len() - 1,
+            _test_type: ChiSquaredTestType::GoodnessOfFit,
+            _categorical_data: Some(categorical_data),
+            _expected_frequencies: Some(expected_frequencies),
+            _categorical_data_1: None,
+            _categorical_data_2: None,
+            _contingency_table: vec![],
+            _expected_table: vec![],
+            _observed_frequencies: vec![],
+            _level_names: vec![],
+            _statistic_run: false,
+            chi_squared: 0.0,
+        };
+
+        Ok(new_chi_squared)
+    }
+
+    /// Creates a new Chi-Squared Test of Independence
+    pub fn new_independence(
+        name: String,
+        description: String,
+        categorical_data_1: &'a CategoricalDataArray<'a>,
+        categorical_data_2: &'a CategoricalDataArray<'a>,
+    ) -> Result<ChiSquared<'a>, Error> {
+        if categorical_data_1.n != categorical_data_2.n {
+            return Err(anyhow!(
+                "Both categorical variables must have the same number of observations"
+            ));
+        }
+
+        let df = (categorical_data_1.levels.len() - 1) * (categorical_data_2.levels.len() - 1);
+
+        let new_chi_squared = ChiSquared {
+            name,
+            description,
+            _n: categorical_data_1.n,
+            _df: df,
+            _test_type: ChiSquaredTestType::Independence,
+            _categorical_data: None,
+            _expected_frequencies: None,
+            _categorical_data_1: Some(categorical_data_1),
+            _categorical_data_2: Some(categorical_data_2),
+            _contingency_table: vec![],
+            _expected_table: vec![],
+            _observed_frequencies: vec![],
+            _level_names: vec![],
+            _statistic_run: false,
+            chi_squared: 0.0,
+        };
+
+        Ok(new_chi_squared)
+    }
+
+    fn run_statistic(&mut self) -> Result<(), Error> {
+        match self._test_type {
+            ChiSquaredTestType::GoodnessOfFit => self.run_goodness_of_fit(),
+            ChiSquaredTestType::Independence => self.run_independence(),
+        }
+    }
+
+    fn run_goodness_of_fit(&mut self) -> Result<(), Error> {
+        info!("...Calculating 'Chi-Squared Goodness of Fit'...");
+
+        let categorical_data = self._categorical_data.unwrap();
+        let expected_frequencies = self._expected_frequencies.as_ref().unwrap();
+
+        // Collect observed frequencies and level names
+        for (level_name, indices) in categorical_data.levels.iter() {
+            self._level_names.push(level_name.to_string());
+            self._observed_frequencies.push(indices.len());
+        }
+
+        // Calculate chi-squared statistic: χ² = Σ((O - E)² / E)
+        self.chi_squared = self
+            ._observed_frequencies
+            .iter()
+            .zip(expected_frequencies.iter())
+            .map(|(observed, expected)| {
+                let diff = *observed as f64 - expected;
+                (diff * diff) / expected
+            })
+            .sum::<f64>();
+
+        self._statistic_run = true;
+        Ok(())
+    }
+
+    fn run_independence(&mut self) -> Result<(), Error> {
+        info!("...Calculating 'Chi-Squared Test of Independence'...");
+
+        let cat_data_1 = self._categorical_data_1.unwrap();
+        let cat_data_2 = self._categorical_data_2.unwrap();
+
+        // Build contingency table
+        let levels_1: Vec<&String> = cat_data_1.levels.keys().copied().collect();
+        let levels_2: Vec<&String> = cat_data_2.levels.keys().copied().collect();
+
+        // Initialize contingency table
+        self._contingency_table = vec![vec![0; levels_2.len()]; levels_1.len()];
+
+        // Fill contingency table
+        for i in 0..cat_data_1.n {
+            let level_1 = cat_data_1.data_array.data[i].1;
+            let level_2 = cat_data_2.data_array.data[i].1;
+
+            let row_idx = levels_1.iter().position(|&l| l == level_1).unwrap();
+            let col_idx = levels_2.iter().position(|&l| l == level_2).unwrap();
+
+            self._contingency_table[row_idx][col_idx] += 1;
+        }
+
+        // Calculate row and column totals
+        let row_totals: Vec<usize> = self
+            ._contingency_table
+            .iter()
+            .map(|row| row.iter().sum())
+            .collect();
+
+        let col_totals: Vec<usize> = (0..levels_2.len())
+            .map(|col| {
+                self._contingency_table
+                    .iter()
+                    .map(|row| row[col])
+                    .sum::<usize>()
+            })
+            .collect();
+
+        let total = self._n as f64;
+
+        // Calculate expected frequencies
+        self._expected_table = vec![vec![0.0; levels_2.len()]; levels_1.len()];
+        for i in 0..levels_1.len() {
+            for j in 0..levels_2.len() {
+                self._expected_table[i][j] = (row_totals[i] as f64 * col_totals[j] as f64) / total;
+            }
+        }
+
+        // Calculate chi-squared statistic
+        self.chi_squared = 0.0;
+        for i in 0..levels_1.len() {
+            for j in 0..levels_2.len() {
+                let observed = self._contingency_table[i][j] as f64;
+                let expected = self._expected_table[i][j];
+                if expected > 0.0 {
+                    let diff = observed - expected;
+                    self.chi_squared += (diff * diff) / expected;
+                }
+            }
+        }
+
+        self._statistic_run = true;
+        Ok(())
+    }
+
+    pub fn print(mut self) {
+        if self._statistic_run {
+            info!("{}", logging::format_title(&*self.name));
+            info!("Description: '{}'", self.description);
+            info!("n: {}", self._n);
+            info!("df: {}", self._df);
+
+            match self._test_type {
+                ChiSquaredTestType::GoodnessOfFit => {
+                    info!("Test Type: Goodness of Fit");
+                    for (i, level_name) in self._level_names.iter().enumerate() {
+                        info!(
+                            "Level '{}': Observed = {}, Expected = {}",
+                            level_name,
+                            self._observed_frequencies[i],
+                            self._expected_frequencies.as_ref().unwrap()[i]
+                        );
+                    }
+                }
+                ChiSquaredTestType::Independence => {
+                    info!("Test Type: Test of Independence");
+                    info!("Contingency Table (Observed):");
+                    for row in &self._contingency_table {
+                        info!("  {:?}", row);
+                    }
+                    info!("Expected Frequencies:");
+                    for row in &self._expected_table {
+                        info!("  {:?}", row);
+                    }
+                }
+            }
+
+            info!("Chi-Squared = {}", self.chi_squared);
+        } else {
+            self.run_statistic()
+                .expect("Error running chi-squared test");
+            self.print();
+        }
+    }
+}
+
+pub fn run_chi_squared_goodness_of_fit_test(
+    config: ChiSquaredGoodnessOfFitConfig,
+) -> Result<(), Error> {
+    let mut description_config_in: DescriptionConfig = Default::default();
+    if let Some(description_config) = config.description_config {
+        description_config_in = description_config;
+    } else {
+        description_config_in.name = String::from("Chi-Squared Goodness of Fit Test");
+        description_config_in.description = String::from("Chi-Squared Goodness of Fit Test");
+    }
+
+    let categorical_data_column = config
+        .csv_data
+        .get_column::<String>(config.categorical_column_index, Some(false))?;
+
+    let categorical_data_array: CategoricalDataArray = CategoricalDataArray::new(
+        description_config_in.name.clone(),
+        &categorical_data_column,
+        config.categorical_column_index,
+        config.csv_data.headers[config.categorical_column_index].clone(),
+        Some(false),
+    )?;
+
+    let mut new_chi_squared_test = ChiSquared::new_goodness_of_fit(
+        description_config_in.name,
+        description_config_in.description,
+        &categorical_data_array,
+        config.expected_frequencies,
+    )?;
+    new_chi_squared_test.run_statistic()?;
+    new_chi_squared_test.print();
+
+    Ok(())
+}
+
+pub fn run_chi_squared_independence_test(
+    config: ChiSquaredIndependenceConfig,
+) -> Result<(), Error> {
+    let mut description_config_in: DescriptionConfig = Default::default();
+    if let Some(description_config) = config.description_config {
+        description_config_in = description_config;
+    } else {
+        description_config_in.name = String::from("Chi-Squared Test of Independence");
+        description_config_in.description = String::from("Chi-Squared Test of Independence");
+    }
+
+    let categorical_data_column_1 = config
+        .csv_data
+        .get_column::<String>(config.categorical_column_index_1, Some(false))?;
+
+    let categorical_data_array_1: CategoricalDataArray = CategoricalDataArray::new(
+        description_config_in.name.clone(),
+        &categorical_data_column_1,
+        config.categorical_column_index_1,
+        config.csv_data.headers[config.categorical_column_index_1].clone(),
+        Some(false),
+    )?;
+
+    let categorical_data_column_2 = config
+        .csv_data
+        .get_column::<String>(config.categorical_column_index_2, Some(false))?;
+
+    let categorical_data_array_2: CategoricalDataArray = CategoricalDataArray::new(
+        description_config_in.name.clone(),
+        &categorical_data_column_2,
+        config.categorical_column_index_2,
+        config.csv_data.headers[config.categorical_column_index_2].clone(),
+        Some(false),
+    )?;
+
+    let mut new_chi_squared_test = ChiSquared::new_independence(
+        description_config_in.name,
+        description_config_in.description,
+        &categorical_data_array_1,
+        &categorical_data_array_2,
+    )?;
+    new_chi_squared_test.run_statistic()?;
+    new_chi_squared_test.print();
+
+    Ok(())
+}
 
 #[derive(Debug, Clone)]
 pub struct SingleSampleT<'a> {
@@ -657,7 +986,7 @@ pub fn run_anova_test(config: ANOVAConfig) -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
+    use super::{ChiSquared, IndependentGroupsT, PairedSamplesT, SingleSampleT, ANOVA};
     // use crate::data_types::csv::generate_dummy_csv;
     use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
     use anyhow::{Error, Result};
@@ -791,6 +1120,98 @@ mod tests {
         test.run_statistic()?;
 
         assert_eq!(f64::round(test.f * 1000.0) / 1000.0, 0.859);
+
+        Ok(())
+    }
+
+    #[test]
+    fn chi_squared_goodness_of_fit_is_ok() -> Result<(), Error> {
+        // Test a fair die hypothesis with observed rolls
+        let categorical_strings = vec![
+            "1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5",
+            "6", "1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6", "1", "2", "3", "4",
+            "5", "6", "1", "1", "1", "1", "1", "1", "2", "3", "4", "5", "6", "6", "6", "6", "6",
+            "6",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let categorical_data_array = CategoricalDataArray::new(
+            String::from("Die Rolls"),
+            &categorical_strings,
+            0,
+            String::from("Test die roll data"),
+            None,
+        )?;
+
+        // Expected frequency for a fair die (52 rolls / 6 faces ≈ 8.67 per face)
+        let expected_frequencies = vec![
+            8.666666666666666,
+            8.666666666666666,
+            8.666666666666666,
+            8.666666666666666,
+            8.666666666666666,
+            8.666666666666666,
+        ];
+
+        let mut test = ChiSquared::new_goodness_of_fit(
+            String::from("Fair Die Test"),
+            String::from("Testing if die is fair"),
+            &categorical_data_array,
+            expected_frequencies,
+        )?;
+        test.run_statistic()?;
+
+        // With the distribution above, we expect a significant chi-squared value
+        assert!(test.chi_squared > 0.0);
+        assert_eq!(test._df, 5); // 6 categories - 1
+
+        Ok(())
+    }
+
+    #[test]
+    fn chi_squared_independence_is_ok() -> Result<(), Error> {
+        // Test independence between two categorical variables
+        // Gender: M, M, M, M, F, F, F, F
+        // Preference: A, A, B, B, A, A, B, B
+        let gender_strings = vec!["M", "M", "M", "M", "F", "F", "F", "F"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+
+        let preference_strings = vec!["A", "A", "B", "B", "A", "A", "B", "B"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+
+        let gender_array = CategoricalDataArray::new(
+            String::from("Gender"),
+            &gender_strings,
+            0,
+            String::from("Gender data"),
+            None,
+        )?;
+
+        let preference_array = CategoricalDataArray::new(
+            String::from("Preference"),
+            &preference_strings,
+            1,
+            String::from("Preference data"),
+            None,
+        )?;
+
+        let mut test = ChiSquared::new_independence(
+            String::from("Gender vs Preference"),
+            String::from("Testing independence between gender and preference"),
+            &gender_array,
+            &preference_array,
+        )?;
+        test.run_statistic()?;
+
+        // With perfectly balanced data, chi-squared should be 0
+        assert_eq!(test.chi_squared, 0.0);
+        assert_eq!(test._df, 1); // (2-1) * (2-1)
 
         Ok(())
     }
