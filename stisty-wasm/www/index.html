@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stisty - Genome Analysis</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧬 Stisty Genome Analyzer</h1>
+            <p class="subtitle">Privacy-First Genetic Data Analysis</p>
+        </header>
+
+        <div class="privacy-notice">
+            <h3>🔒 Privacy Notice</h3>
+            <ul>
+                <li>✅ All processing happens in your browser</li>
+                <li>✅ Your genome data never leaves your device</li>
+                <li>✅ No server uploads or storage</li>
+                <li>✅ Open source and auditable</li>
+            </ul>
+        </div>
+
+        <main>
+            <section class="upload-section">
+                <h2>Upload Genome Data</h2>
+                <p class="help-text">Select your 23andMe raw data file (.txt or .tsv)</p>
+
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".txt,.tsv" />
+                    <label for="fileInput" class="file-label">Choose File</label>
+                    <span id="fileName" class="file-name">No file selected</span>
+                </div>
+
+                <div id="loadingIndicator" class="loading hidden">
+                    <div class="spinner"></div>
+                    <p>Analyzing genome data...</p>
+                </div>
+            </section>
+
+            <section id="resultsSection" class="results-section hidden">
+                <h2>Analysis Results</h2>
+
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="summary">Summary</button>
+                    <button class="tab-button" data-tab="lookup">SNP Lookup</button>
+                    <button class="tab-button" data-tab="chromosome">Chromosomes</button>
+                </div>
+
+                <div id="summaryTab" class="tab-content active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total SNPs</h3>
+                            <p id="totalSnps" class="stat-value">-</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Heterozygosity Rate</h3>
+                            <p id="hetRate" class="stat-value">-</p>
+                            <p class="stat-help">Expected: 20-35%</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Ts/Tv Ratio</h3>
+                            <p id="tsTvRatio" class="stat-value">-</p>
+                            <p class="stat-help">Expected: ~2.0-2.1</p>
+                        </div>
+                    </div>
+
+                    <div class="charts">
+                        <div class="chart-card">
+                            <h3>Allele Frequencies</h3>
+                            <div id="alleleChart"></div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>SNPs per Chromosome</h3>
+                            <div id="chromosomeChart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lookupTab" class="tab-content">
+                    <div class="lookup-section">
+                        <input type="text" id="snpInput" placeholder="Enter SNP rsid (e.g., rs548049170)" />
+                        <button id="lookupButton">Look Up</button>
+                    </div>
+                    <div id="snpResults" class="snp-results hidden"></div>
+                </div>
+
+                <div id="chromosomeTab" class="tab-content">
+                    <div class="chromosome-selector">
+                        <label for="chrSelect">Select Chromosome:</label>
+                        <select id="chrSelect">
+                            <option value="">Choose...</option>
+                            <option value="1">Chromosome 1</option>
+                            <option value="2">Chromosome 2</option>
+                            <option value="3">Chromosome 3</option>
+                            <option value="4">Chromosome 4</option>
+                            <option value="5">Chromosome 5</option>
+                            <option value="6">Chromosome 6</option>
+                            <option value="7">Chromosome 7</option>
+                            <option value="8">Chromosome 8</option>
+                            <option value="9">Chromosome 9</option>
+                            <option value="10">Chromosome 10</option>
+                            <option value="11">Chromosome 11</option>
+                            <option value="12">Chromosome 12</option>
+                            <option value="13">Chromosome 13</option>
+                            <option value="14">Chromosome 14</option>
+                            <option value="15">Chromosome 15</option>
+                            <option value="16">Chromosome 16</option>
+                            <option value="17">Chromosome 17</option>
+                            <option value="18">Chromosome 18</option>
+                            <option value="19">Chromosome 19</option>
+                            <option value="20">Chromosome 20</option>
+                            <option value="21">Chromosome 21</option>
+                            <option value="22">Chromosome 22</option>
+                            <option value="X">Chromosome X</option>
+                            <option value="Y">Chromosome Y</option>
+                            <option value="MT">Mitochondrial DNA</option>
+                        </select>
+                    </div>
+                    <div id="chrResults" class="chromosome-results hidden"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Built with <a href="https://github.com/captainzonks/Stisty" target="_blank">Stisty</a> |
+               <a href="https://github.com/captainzonks/Stisty/blob/main/GENOME_USAGE.md" target="_blank">Documentation</a></p>
+        </footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
