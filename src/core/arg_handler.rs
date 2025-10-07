@@ -4,6 +4,7 @@ use crate::data_types::statistics::{
     run_anova_test, run_chi_squared_goodness_of_fit_test, run_chi_squared_independence_test,
     run_independent_groups_t_test, run_paired_samples_t_test, run_single_sample_t_test,
 };
+use crate::genetics::{GenomeAnalyzer, GenomeData};
 
 use anyhow::{anyhow, Error, Result};
 use clap::{command, value_parser, Arg, ArgAction, ArgMatches, Command};
@@ -61,6 +62,22 @@ pub struct ChiSquaredIndependenceConfig {
     pub description_config: Option<DescriptionConfig>,
     pub categorical_column_index_1: usize,
     pub categorical_column_index_2: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct GenomeConfig {
+    pub genome_file: PathBuf,
+    pub analysis_type: GenomeAnalysisType,
+}
+
+#[derive(Debug, Clone)]
+pub enum GenomeAnalysisType {
+    Summary,
+    LookupSnp { rsid: String },
+    ChromosomeStats { chromosome: String },
+    HeterozygosityRate,
+    AlleleFrequencies,
+    TransitionTransversionRatio,
 }
 
 pub fn generate_cli() -> Result<ArgMatches, Error> {
@@ -286,6 +303,54 @@ pub fn generate_cli() -> Result<ArgMatches, Error> {
                         ]),
                 ]),
         )
+        .subcommand(
+            Command::new("Genetics")
+                .short_flag('G')
+                .long_flag("genetics")
+                .about("Analyze genome data from 23andMe or similar services")
+                .arg_required_else_help(true)
+                .arg(
+                    Arg::new("genome-file")
+                        .short('f')
+                        .long("file")
+                        .help("Path to genome data file (23andMe format)")
+                        .required(true)
+                        .value_parser(value_parser!(PathBuf))
+                        .action(ArgAction::Set),
+                )
+                .subcommands([
+                    Command::new("summary")
+                        .about("Generate comprehensive genome summary"),
+                    Command::new("lookup")
+                        .about("Look up a specific SNP by rsid")
+                        .arg(
+                            Arg::new("rsid")
+                                .short('r')
+                                .long("rsid")
+                                .help("SNP identifier (e.g., rs548049170)")
+                                .required(true)
+                                .value_parser(value_parser!(String))
+                                .action(ArgAction::Set),
+                        ),
+                    Command::new("chromosome")
+                        .about("Get statistics for a specific chromosome")
+                        .arg(
+                            Arg::new("chr")
+                                .short('c')
+                                .long("chromosome")
+                                .help("Chromosome number (1-22, X, Y, or MT)")
+                                .required(true)
+                                .value_parser(value_parser!(String))
+                                .action(ArgAction::Set),
+                        ),
+                    Command::new("heterozygosity")
+                        .about("Calculate heterozygosity rate"),
+                    Command::new("alleles")
+                        .about("Calculate allele frequencies"),
+                    Command::new("ts-tv")
+                        .about("Calculate transition/transversion ratio"),
+                ]),
+        )
         .get_matches();
 
     Ok(matches)
@@ -489,6 +554,83 @@ pub fn process_cli(matches: ArgMatches) -> Result<(), Error> {
                 ));
             }
         }
+    }
+
+    if let Some(matches) = matches.subcommand_matches("Genetics") {
+        let genome_file = matches.get_one::<PathBuf>("genome-file")
+            .ok_or_else(|| anyhow!("Genome file path is required"))?;
+
+        if !genome_file.is_file() {
+            return Err(anyhow!("Genome file not found at {}", genome_file.display()));
+        }
+
+        info!("Loading genome data from {:?}", genome_file);
+        let genome = GenomeData::from_file(genome_file)?;
+        let analyzer = GenomeAnalyzer::new(&genome);
+
+        match matches.subcommand() {
+            Some(("summary", _)) => {
+                let summary = analyzer.generate_summary();
+                println!("{}", summary.display());
+            }
+            Some(("lookup", args)) => {
+                let rsid = args.get_one::<String>("rsid")
+                    .ok_or_else(|| anyhow!("rsid is required"))?;
+
+                match genome.find_snp(rsid) {
+                    Some(snp) => {
+                        println!("\nSNP Information:");
+                        println!("================");
+                        println!("rsid: {}", snp.rsid);
+                        println!("Chromosome: {}", snp.chromosome);
+                        println!("Position: {}", snp.position);
+                        println!("Genotype: {}", snp.genotype);
+                        println!("Type: {}", if snp.is_heterozygous() { "Heterozygous" } else { "Homozygous" });
+                    }
+                    None => {
+                        println!("SNP {} not found in genome data", rsid);
+                    }
+                }
+            }
+            Some(("chromosome", args)) => {
+                let chr = args.get_one::<String>("chr")
+                    .ok_or_else(|| anyhow!("chromosome is required"))?;
+
+                let chr_snps = genome.get_snps_by_chromosome(chr);
+                println!("\nChromosome {} Statistics:", chr);
+                println!("========================");
+                println!("Total SNPs: {}", chr_snps.len());
+
+                let het_count = chr_snps.iter().filter(|snp| snp.is_heterozygous()).count();
+                let het_rate = if !chr_snps.is_empty() {
+                    het_count as f64 / chr_snps.len() as f64
+                } else {
+                    0.0
+                };
+                println!("Heterozygous SNPs: {} ({:.2}%)", het_count, het_rate * 100.0);
+            }
+            Some(("heterozygosity", _)) => {
+                let rate = genome.heterozygosity_rate();
+                println!("\nHeterozygosity Rate: {:.4} ({:.2}%)", rate, rate * 100.0);
+            }
+            Some(("alleles", _)) => {
+                let freqs = analyzer.calculate_allele_frequencies();
+                println!("\nAllele Frequencies:");
+                println!("===================");
+                let mut sorted_freqs: Vec<_> = freqs.iter().collect();
+                sorted_freqs.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+                for (allele, freq) in sorted_freqs {
+                    println!("{}: {:.4} ({:.2}%)", allele, freq, freq * 100.0);
+                }
+            }
+            Some(("ts-tv", _)) => {
+                let ratio = analyzer.transition_transversion_ratio();
+                println!("\nTransition/Transversion Ratio: {:.4}", ratio);
+            }
+            _ => {}
+        }
+
+        return Ok(());
     }
 
     Ok(())

@@ -1,6 +1,7 @@
 use crate::data_types::csv::{import_csv_data, CSVData};
 use crate::data_types::data_array::{CategoricalDataArray, ContinuousDataArray};
 use crate::data_types::statistics::{PairedSamplesT, ANOVA};
+use crate::genetics::{GenomeAnalyzer, GenomeData};
 use anyhow::{anyhow, Error, Result};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -14,11 +15,29 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 pub fn main_menu() -> Result<(), Error> {
+    let analysis_types = vec![
+        "Statistical Analysis (CSV)",
+        "Genome Analysis (23andMe/TSV)"
+    ];
+
+    let analysis_type = Select::new("What type of analysis would you like to run?", analysis_types).prompt()?;
+
+    match analysis_type {
+        "Statistical Analysis (CSV)" => statistics_menu()?,
+        "Genome Analysis (23andMe/TSV)" => genome_menu()?,
+        &_ => {}
+    }
+
+    Ok(())
+}
+
+fn statistics_menu() -> Result<(), Error> {
     let statistics = vec![
         "Single Sample T",
         "Paired Samples T",
         "Independent Groups T",
         "One Way ANOVA",
+        "Chi-Squared Test"
     ];
 
     let current_dir = env::current_dir()?;
@@ -54,6 +73,113 @@ pub fn main_menu() -> Result<(), Error> {
         "Paired Samples T" => paired_samples_t_menu(&csv_data)?,
         "Independent Groups T" => independent_groups_t_menu(&csv_data)?,
         "One Way ANOVA" => one_way_anova_menu(&csv_data)?,
+        &_ => {}
+    }
+
+    Ok(())
+}
+
+fn genome_menu() -> Result<(), Error> {
+    let current_dir = env::current_dir()?;
+    let help_message = format!("Current directory: {}", current_dir.to_string_lossy());
+
+    let genome_file_path_string =
+        Text::new("Please enter the path to your genome data file (23andMe format):")
+            .with_autocomplete(FilePathCompleter::new()?)
+            .with_help_message(&help_message)
+            .prompt();
+
+    let genome_path = match genome_file_path_string {
+        Ok(path) => path,
+        Err(error) => {
+            println!("There was an error retrieving the path: {error:?}");
+            return Ok(());
+        }
+    };
+
+    let path = Path::new(&genome_path);
+    if !path.is_file() {
+        println!("Genome file not found!");
+        return Ok(());
+    }
+
+    info!("Loading genome data from {:?}", path);
+    let genome = GenomeData::from_file(path)?;
+    info!("Successfully loaded {} SNPs", genome.total_snps());
+
+    let analyses = vec![
+        "Full Summary Report",
+        "Lookup Specific SNP",
+        "Chromosome Statistics",
+        "Heterozygosity Rate",
+        "Allele Frequencies",
+        "Transition/Transversion Ratio",
+    ];
+
+    let analysis = Select::new("What analysis would you like to run?", analyses).prompt()?;
+
+    let analyzer = GenomeAnalyzer::new(&genome);
+
+    match analysis {
+        "Full Summary Report" => {
+            let summary = analyzer.generate_summary();
+            println!("\n{}", summary.display());
+        }
+        "Lookup Specific SNP" => {
+            let rsid = Text::new("Enter the SNP rsid (e.g., rs548049170):")
+                .prompt()?;
+
+            match genome.find_snp(&rsid) {
+                Some(snp) => {
+                    println!("\nSNP Information:");
+                    println!("================");
+                    println!("rsid: {}", snp.rsid);
+                    println!("Chromosome: {}", snp.chromosome);
+                    println!("Position: {}", snp.position);
+                    println!("Genotype: {}", snp.genotype);
+                    println!("Type: {}", if snp.is_heterozygous() { "Heterozygous" } else { "Homozygous" });
+                }
+                None => {
+                    println!("SNP {} not found in genome data", rsid);
+                }
+            }
+        }
+        "Chromosome Statistics" => {
+            let chr = Text::new("Enter chromosome (1-22, X, Y, or MT):")
+                .prompt()?;
+
+            let chr_snps = genome.get_snps_by_chromosome(&chr);
+            println!("\nChromosome {} Statistics:", chr);
+            println!("========================");
+            println!("Total SNPs: {}", chr_snps.len());
+
+            let het_count = chr_snps.iter().filter(|snp| snp.is_heterozygous()).count();
+            let het_rate = if !chr_snps.is_empty() {
+                het_count as f64 / chr_snps.len() as f64
+            } else {
+                0.0
+            };
+            println!("Heterozygous SNPs: {} ({:.2}%)", het_count, het_rate * 100.0);
+        }
+        "Heterozygosity Rate" => {
+            let rate = genome.heterozygosity_rate();
+            println!("\nHeterozygosity Rate: {:.4} ({:.2}%)", rate, rate * 100.0);
+        }
+        "Allele Frequencies" => {
+            let freqs = analyzer.calculate_allele_frequencies();
+            println!("\nAllele Frequencies:");
+            println!("===================");
+            let mut sorted_freqs: Vec<_> = freqs.iter().collect();
+            sorted_freqs.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+            for (allele, freq) in sorted_freqs {
+                println!("{}: {:.4} ({:.2}%)", allele, freq, freq * 100.0);
+            }
+        }
+        "Transition/Transversion Ratio" => {
+            let ratio = analyzer.transition_transversion_ratio();
+            println!("\nTransition/Transversion Ratio: {:.4}", ratio);
+            println!("(Expected range for human genomes: ~2.0-2.1)");
+        }
         &_ => {}
     }
 
@@ -267,6 +393,12 @@ fn one_way_anova_menu(csv_data: &CSVData) -> Result<(), Error> {
     )?;
 
     result.print();
+
+    Ok(())
+}
+
+fn chi_squared_test_menu(csv_data: &CSVData) -> Result<(), Error> {
+
 
     Ok(())
 }

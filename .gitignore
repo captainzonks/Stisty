@@ -27,7 +27,6 @@ logs/
 .*.swo
 
 # IDE - Emacs
-*~
 \#*\#
 .\#*
 
@@ -56,3 +55,6 @@ Desktop.ini
 flamegraph.svg
 perf.data
 perf.data.old
+
+# Private
+/data_sources/
