@@ -148,9 +148,11 @@ genome.yourdomain.com {
 
 ## Authentication Integration
 
-### Authentik (Recommended for Enterprise)
+### Authentik (Enterprise SSO Platform)
 
-**Traefik Forward Auth Middleware**:
+Full-featured SSO with OIDC, SAML, OAuth2 support. See [AUTHENTIK.md](AUTHENTIK.md) for complete setup guide.
+
+**Quick setup**:
 
 1. Create application in Authentik:
    - Type: Provider → Proxy Provider
@@ -181,6 +183,42 @@ http:
       middlewares:
         - authentik
 ```
+
+**[→ Full Authentik Integration Guide](AUTHENTIK.md)**
+
+### Authelia (Lightweight Alternative)
+
+Lightweight forward auth with LDAP/file backend and MFA support. See [AUTHELIA.md](AUTHELIA.md) for complete setup guide.
+
+**Quick setup**:
+
+1. Configure Authelia with access control rules
+2. Add Traefik middleware:
+```yaml
+# traefik/dynamic/middlewares.yml
+http:
+  middlewares:
+    authelia:
+      forwardAuth:
+        address: http://authelia:9091/api/verify?rd=https://auth.yourdomain.com/
+        trustForwardHeader: true
+        authResponseHeaders:
+          - Remote-User
+          - Remote-Groups
+          - Remote-Name
+          - Remote-Email
+```
+
+3. Apply to Stisty router:
+```yaml
+http:
+  routers:
+    stisty-genome:
+      middlewares:
+        - authelia
+```
+
+**[→ Full Authelia Integration Guide](AUTHELIA.md)**
 
 ### OAuth2 Proxy
 
