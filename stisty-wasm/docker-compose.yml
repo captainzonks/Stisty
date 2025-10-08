@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  stisty-web:
+    build:
+      context: ..
+      dockerfile: stisty-wasm/Dockerfile
+    image: stisty-genome-web:latest
+    container_name: stisty-genome-web
+    restart: unless-stopped
+
+    # Expose port for reverse proxy
+    ports:
+      - "127.0.0.1:8080:80"  # Only bind to localhost
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+
+    # Temporary directories for nginx
+    tmpfs:
+      - /var/cache/nginx:size=10M
+      - /var/run:size=10M
+      - /tmp:size=10M
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    # Resource limits (adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Networks (adjust for your setup)
+    networks:
+      - web
+
+    # Labels for documentation (customize for your reverse proxy)
+    labels:
+      - "com.stisty.app=genome-analyzer"
+      - "com.stisty.version=0.1.0"
+
+networks:
+  web:
+    external: true
+    # If using an existing network, set external: true and use your network name
+    # If creating a new network, remove 'external' or set to false
