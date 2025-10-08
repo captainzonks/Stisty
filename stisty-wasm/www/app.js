@@ -1,4 +1,4 @@
-import init, { analyze_genome, lookup_snp, chromosome_stats } from '../pkg/stisty_wasm.js';
+import init, { analyze_genome, lookup_snp, chromosome_stats } from './stisty_wasm.js';
 
 // State
 let genomeData = null;

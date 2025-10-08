@@ -15,9 +15,11 @@ serde-wasm-bindgen = "0.6"
 serde_json = "1.0"
 console_error_panic_hook = "0.1"
 wee_alloc = "0.4"
+anyhow = "1.0.100"
+getrandom = { version = "0.3.3", features = ["wasm_js"] }
 
-# Use the parent crate's genetics module
-stisty_lib = { path = ".." }
+# Use the parent crate's genetics module with no default features (disables CLI deps)
+stisty_lib = { path = "..", package = "Stisty", default-features = false }
 
 [dependencies.web-sys]
 version = "0.3"
@@ -31,3 +33,6 @@ lto = true          # Enable Link Time Optimization
 codegen-units = 1   # Reduce number of codegen units to increase optimizations
 panic = "abort"     # Abort on panic
 strip = true        # Strip symbols from binary
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false    # Disable wasm-opt to prevent validation errors

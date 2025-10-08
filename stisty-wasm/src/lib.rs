@@ -1,6 +1,5 @@
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
 use stisty_lib::genetics::{GenomeAnalyzer, GenomeData};
 
 // Set up panic hook for better error messages in browser console
@@ -41,12 +40,6 @@ pub struct SnpResult {
 /// JSON string containing the genome analysis summary
 #[wasm_bindgen]
 pub fn analyze_genome(file_content: &str) -> Result<String, JsValue> {
-    // Create a temporary file path (not actually used, just for the API)
-    let temp_path = std::path::Path::new("genome.txt");
-
-    // Write content to a cursor (in-memory buffer)
-    let cursor = Cursor::new(file_content.as_bytes());
-
     // Parse genome data from the file content
     let genome = parse_genome_from_string(file_content)
         .map_err(|e| JsValue::from_str(&format!("Failed to parse genome data: {}", e)))?;
@@ -136,14 +129,6 @@ pub fn chromosome_stats(file_content: &str, chromosome: &str) -> Result<String, 
 
 // Helper function to parse genome data from string
 fn parse_genome_from_string(content: &str) -> anyhow::Result<GenomeData> {
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-
-    // Create temporary file
-    let mut temp_file = NamedTempFile::new()?;
-    temp_file.write_all(content.as_bytes())?;
-    temp_file.flush()?;
-
-    // Parse genome data
-    GenomeData::from_file(temp_file.path())
+    // Parse genome data directly from string (no filesystem access needed)
+    GenomeData::from_string(content)
 }
