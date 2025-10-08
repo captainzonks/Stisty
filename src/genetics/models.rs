@@ -180,8 +180,8 @@ impl GenomeData {
                     genome_data.snps.push(snp);
                     snp_count += 1;
                 }
-                Err(e) => {
-                    log::warn!("Failed to parse SNP line: {} - Error: {}", trimmed, e);
+                Err(_) => {
+                    // Silently skip malformed lines (compatible with WASM environments)
                 }
             }
         }
