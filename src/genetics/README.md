@@ -14,12 +14,28 @@ Analysis tools for genome data from 23andMe and similar services.
 
 ### Loading Genome Data
 
+#### From File (CLI/Desktop Applications)
+
 ```rust
 use stisty_lib::genetics::GenomeData;
 use std::path::Path;
 
 let genome = GenomeData::from_file(Path::new("path/to/genome_data.txt"))?;
 ```
+
+#### From String (WASM/Browser Applications)
+
+```rust
+use stisty_lib::genetics::GenomeData;
+
+// For browser environments where filesystem access isn't available
+let file_content = "# 23andMe data...\nrsid\tchromosome\tposition\tgenotype\n...";
+let genome = GenomeData::from_string(file_content)?;
+```
+
+> **Note**: The `from_string()` method is particularly useful for WebAssembly builds
+> where filesystem operations are not available. All genome data is processed
+> in-memory without requiring temporary files.
 
 ### Analyzing Genome Data
 
