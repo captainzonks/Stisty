@@ -302,7 +302,7 @@ input[type="file"] {
     margin-bottom: 0.25rem;
 }
 
-.snp-field value {
+.snp-field .value {
     font-size: 1.125rem;
     font-weight: 500;
     color: var(--text-color);

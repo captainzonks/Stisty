@@ -179,23 +179,23 @@ lookupButton.addEventListener('click', async () => {
                 <div class="snp-info">
                     <div class="snp-field">
                         <label>rsID</label>
-                        <value>${result.rsid}</value>
+                        <div class="value">${result.rsid}</div>
                     </div>
                     <div class="snp-field">
                         <label>Chromosome</label>
-                        <value>${result.chromosome}</value>
+                        <div class="value">${result.chromosome}</div>
                     </div>
                     <div class="snp-field">
                         <label>Position</label>
-                        <value>${result.position.toLocaleString()}</value>
+                        <div class="value">${result.position.toLocaleString()}</div>
                     </div>
                     <div class="snp-field">
                         <label>Genotype</label>
-                        <value>${result.genotype}</value>
+                        <div class="value">${result.genotype}</div>
                     </div>
                     <div class="snp-field">
                         <label>Type</label>
-                        <value>${result.is_heterozygous ? 'Heterozygous' : 'Homozygous'}</value>
+                        <div class="value">${result.is_heterozygous ? 'Heterozygous' : 'Homozygous'}</div>
                     </div>
                 </div>
             `;
@@ -241,19 +241,19 @@ chrSelect.addEventListener('change', async () => {
             <div class="snp-info">
                 <div class="snp-field">
                     <label>Chromosome</label>
-                    <value>${result.chromosome}</value>
+                    <div class="value">${result.chromosome}</div>
                 </div>
                 <div class="snp-field">
                     <label>Total SNPs</label>
-                    <value>${result.total_snps.toLocaleString()}</value>
+                    <div class="value">${result.total_snps.toLocaleString()}</div>
                 </div>
                 <div class="snp-field">
                     <label>Heterozygous SNPs</label>
-                    <value>${result.heterozygous_count.toLocaleString()}</value>
+                    <div class="value">${result.heterozygous_count.toLocaleString()}</div>
                 </div>
                 <div class="snp-field">
                     <label>Heterozygosity Rate</label>
-                    <value>${hetRate}%</value>
+                    <div class="value">${hetRate}%</div>
                 </div>
             </div>
         `;

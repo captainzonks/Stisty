@@ -8,9 +8,9 @@ pub fn init() {
     console_error_panic_hook::set_once();
 }
 
-// Use wee_alloc as the global allocator for smaller WASM binary size
+// Use dlmalloc as the global allocator for WASM (wee_alloc is deprecated)
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
 #[derive(Serialize, Deserialize)]
 pub struct GenomeSummaryResult {
