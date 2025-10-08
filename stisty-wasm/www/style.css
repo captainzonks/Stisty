@@ -67,7 +67,10 @@ h1 {
 }
 
 .privacy-notice li {
-    padding: 0.25rem 0 0.25rem 1.5rem;
+    padding-top: 0.25rem;
+    padding-right: 0;
+    padding-bottom: 0.25rem;
+    padding-left: 1.5rem;
 }
 
 .upload-section, .results-section {
