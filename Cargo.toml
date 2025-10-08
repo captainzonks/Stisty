@@ -1,8 +1,8 @@
 [package]
 name = "Stisty"
-version = "0.1.0-alpha"
+version = "0.2.0"
 authors = ["Matt Barham"]
-description = "A command-line statistical analysis tool for CSV data"
+description = "Statistical analysis and genome analyzer toolkit with CLI and WebAssembly support"
 edition = "2024"
 rust-version = "1.90.0"
 license = "MIT OR Apache-2.0"

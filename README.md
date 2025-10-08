@@ -1,8 +1,19 @@
 # Stisty
 
-**A command-line statistical analysis tool written in Rust**
+**A powerful statistical analysis and genome analyzer toolkit written in Rust**
 
-Stisty provides a fast, efficient CLI for performing common statistical tests on CSV data. Built for researchers, students, and data analysts who need quick statistical insights from the command line.
+Stisty provides both a fast CLI for statistical analysis and a privacy-first browser-based genome analyzer. Built for researchers, students, and data analysts who need reliable statistical insights and genome analysis.
+
+## 🌐 Web Application
+
+**Try the browser-based genome analyzer at [your-deployment-url](#)**
+
+- 🔒 **100% Client-Side** - Your genome data never leaves your browser
+- 🚀 **WebAssembly Performance** - Fast Rust code compiled to WASM
+- 📊 **Interactive Analysis** - Real-time statistics and visualizations
+- 🧬 **23andMe Compatible** - Supports 23andMe raw data format
+
+[See deployment guide →](stisty-wasm/README.md)
 
 ---
 
