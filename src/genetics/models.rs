@@ -144,6 +144,51 @@ impl GenomeData {
         Ok(genome_data)
     }
 
+    /// Import genome data from 23andMe text content (for WASM/in-memory use)
+    pub fn from_string(content: &str) -> Result<Self> {
+        let mut genome_data = Self::new();
+        let mut snp_count = 0;
+
+        for line in content.lines() {
+            let trimmed = line.trim();
+
+            // Skip empty lines
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // Parse metadata from comments
+            if trimmed.starts_with('#') {
+                if trimmed.starts_with("# file_id:") {
+                    genome_data.metadata.file_id = Some(trimmed.trim_start_matches("# file_id:").trim().to_string());
+                } else if trimmed.starts_with("# signature:") {
+                    genome_data.metadata.signature = Some(trimmed.trim_start_matches("# signature:").trim().to_string());
+                } else if trimmed.starts_with("# timestamp:") {
+                    genome_data.metadata.timestamp = Some(trimmed.trim_start_matches("# timestamp:").trim().to_string());
+                }
+                continue;
+            }
+
+            // Skip the header line
+            if trimmed.starts_with("rsid") {
+                continue;
+            }
+
+            // Parse SNP data
+            match SNP::from_line(trimmed) {
+                Ok(snp) => {
+                    genome_data.snps.push(snp);
+                    snp_count += 1;
+                }
+                Err(e) => {
+                    log::warn!("Failed to parse SNP line: {} - Error: {}", trimmed, e);
+                }
+            }
+        }
+
+        Ok(genome_data)
+    }
+
     /// Get all SNPs on a specific chromosome
     pub fn get_snps_by_chromosome(&self, chromosome: &str) -> Vec<&SNP> {
         self.snps
