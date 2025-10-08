@@ -312,7 +312,8 @@ generateVcfButton.addEventListener('click', async () => {
         vcfSuccess.classList.remove('hidden');
     } catch (error) {
         console.error('VCF generation error:', error);
-        alert(`Failed to generate VCF: ${error.message}`);
+        const chrContext = vcfChrSelect.value ? ` for chromosome ${vcfChrSelect.value}` : ' for all chromosomes';
+        alert(`Failed to generate VCF${chrContext}: ${error.message}`);
         vcfLoading.classList.add('hidden');
     }
 });

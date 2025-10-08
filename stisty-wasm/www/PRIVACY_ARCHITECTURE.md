@@ -155,7 +155,7 @@ grep -r "navigator.sendBeacon" stisty-wasm/www/
 
 ```bash
 # Check Cargo.toml for network crates
-cd stisty-wasm
+cd Stisty/stisty-wasm
 cat Cargo.toml | grep -E "(reqwest|hyper|curl|http)"
 
 # Should return NO results
@@ -266,7 +266,7 @@ When reviewing changes, reject PRs that:
 
 ```bash
 # Run entirely locally
-cd stisty-wasm
+cd Stisty/stisty-wasm
 ./build.sh
 cd dist
 python3 -m http.server 8080
@@ -331,7 +331,7 @@ cd Stisty
 grep -r "fetch\|XMLHttpRequest\|axios" stisty-wasm/www/
 
 # Check for network crates in WASM
-cd stisty-wasm
+cd Stisty/stisty-wasm
 cat Cargo.toml
 
 # Build and inspect

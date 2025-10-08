@@ -1,7 +1,6 @@
 use super::models::{GenomeData, SNP};
 use anyhow::Result;
 use chrono::Utc;
-use std::collections::HashMap;
 
 /// VCF (Variant Call Format) generator for genome data
 pub struct VcfGenerator<'a> {
@@ -202,18 +201,19 @@ fn compare_chromosomes(a: &str, b: &str) -> std::cmp::Ordering {
         (Some(_), None) => std::cmp::Ordering::Less,
         (None, Some(_)) => std::cmp::Ordering::Greater,
         (None, None) => {
-            // Special ordering for X, Y, MT
-            let order_map: HashMap<&str, u32> = [
-                ("X", 0),
-                ("Y", 1),
-                ("MT", 2),
-                ("M", 2),
-            ].iter().cloned().collect();
+            // Special ordering for X, Y, MT using match for performance
+            fn chrom_order(s: &str) -> u32 {
+                match s {
+                    "X" => 0,
+                    "Y" => 1,
+                    "MT" | "M" => 2,
+                    _ => 99,
+                }
+            }
 
-            let a_order = order_map.get(a).unwrap_or(&99);
-            let b_order = order_map.get(b).unwrap_or(&99);
-
-            a_order.cmp(b_order).then_with(|| a.cmp(b))
+            let a_order = chrom_order(a);
+            let b_order = chrom_order(b);
+            a_order.cmp(&b_order).then_with(|| a.cmp(b))
         }
     }
 }
