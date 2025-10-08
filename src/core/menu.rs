@@ -397,12 +397,6 @@ fn one_way_anova_menu(csv_data: &CSVData) -> Result<(), Error> {
     Ok(())
 }
 
-fn chi_squared_test_menu(csv_data: &CSVData) -> Result<(), Error> {
-
-
-    Ok(())
-}
-
 #[derive(Clone, Default)]
 pub struct FilePathCompleter {
     input: String,

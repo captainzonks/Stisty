@@ -14,13 +14,19 @@
         </header>
 
         <div class="privacy-notice">
-            <h3>🔒 Privacy Notice</h3>
+            <h3>🔒 Privacy Guarantee</h3>
+            <p style="margin-bottom: 1rem; font-weight: 500;">Your genetic data is YOUR data. We never see it.</p>
             <ul>
-                <li>✅ All processing happens in your browser</li>
-                <li>✅ Your genome data never leaves your device</li>
-                <li>✅ No server uploads or storage</li>
-                <li>✅ Open source and auditable</li>
+                <li>✅ All processing happens in your browser using WebAssembly</li>
+                <li>✅ Your genome data <strong>never leaves your device</strong></li>
+                <li>✅ No server uploads, no storage, no transmission</li>
+                <li>✅ No analytics or tracking of genetic information</li>
+                <li>✅ File reading and downloads are 100% local</li>
+                <li>✅ Open source and auditable code</li>
             </ul>
+            <p style="margin-top: 1rem; font-size: 0.875rem; opacity: 0.9;">
+                <strong>Technical guarantee:</strong> Check your browser's network tab - you'll see zero requests containing your genetic data.
+            </p>
         </div>
 
         <main>
@@ -47,6 +53,7 @@
                     <button class="tab-button active" data-tab="summary">Summary</button>
                     <button class="tab-button" data-tab="lookup">SNP Lookup</button>
                     <button class="tab-button" data-tab="chromosome">Chromosomes</button>
+                    <button class="tab-button" data-tab="vcf">VCF Export</button>
                 </div>
 
                 <div id="summaryTab" class="tab-content active">
@@ -121,12 +128,90 @@
                     </div>
                     <div id="chrResults" class="chromosome-results hidden"></div>
                 </div>
+
+                <div id="vcfTab" class="tab-content">
+                    <div class="vcf-section">
+                        <h3>Export to VCF Format</h3>
+                        <p class="help-text">Generate a standard VCF (Variant Call Format) file from your genome data.</p>
+
+                        <div class="vcf-options">
+                            <label for="vcfChrSelect">Export Chromosome:</label>
+                            <select id="vcfChrSelect">
+                                <option value="">All Chromosomes</option>
+                                <option value="1">Chromosome 1</option>
+                                <option value="2">Chromosome 2</option>
+                                <option value="3">Chromosome 3</option>
+                                <option value="4">Chromosome 4</option>
+                                <option value="5">Chromosome 5</option>
+                                <option value="6">Chromosome 6</option>
+                                <option value="7">Chromosome 7</option>
+                                <option value="8">Chromosome 8</option>
+                                <option value="9">Chromosome 9</option>
+                                <option value="10">Chromosome 10</option>
+                                <option value="11">Chromosome 11</option>
+                                <option value="12">Chromosome 12</option>
+                                <option value="13">Chromosome 13</option>
+                                <option value="14">Chromosome 14</option>
+                                <option value="15">Chromosome 15</option>
+                                <option value="16">Chromosome 16</option>
+                                <option value="17">Chromosome 17</option>
+                                <option value="18">Chromosome 18</option>
+                                <option value="19">Chromosome 19</option>
+                                <option value="20">Chromosome 20</option>
+                                <option value="21">Chromosome 21</option>
+                                <option value="22">Chromosome 22</option>
+                                <option value="X">Chromosome X</option>
+                                <option value="Y">Chromosome Y</option>
+                                <option value="MT">Mitochondrial DNA</option>
+                            </select>
+                        </div>
+
+                        <button id="generateVcfButton" class="export-button">Generate VCF</button>
+
+                        <div id="vcfLoading" class="loading hidden">
+                            <div class="spinner"></div>
+                            <p>Generating VCF file...</p>
+                        </div>
+
+                        <div id="vcfSuccess" class="vcf-success hidden">
+                            <p>✅ VCF file generated successfully!</p>
+                            <div class="vcf-actions">
+                                <button id="showVcfButton" class="action-button">View VCF</button>
+                                <button id="downloadVcfButton" class="download-button">Download VCF File</button>
+                            </div>
+                        </div>
+
+                        <div id="vcfDisplay" class="vcf-display hidden">
+                            <div class="vcf-header">
+                                <h4>VCF Output</h4>
+                                <button id="hideVcfButton" class="close-button">Close</button>
+                            </div>
+                            <pre id="vcfContent" class="vcf-content"></pre>
+                        </div>
+
+                        <div class="info-box">
+                            <h4>About VCF Format</h4>
+                            <p>VCF (Variant Call Format) is a standard file format for storing gene sequence variations. The generated file includes:</p>
+                            <ul>
+                                <li>Header with metadata and format version</li>
+                                <li>Chromosome, position, and rsID for each variant</li>
+                                <li>Reference and alternate alleles</li>
+                                <li>Genotype information</li>
+                            </ul>
+                            <p><strong>Note:</strong> Since 23andMe data doesn't include reference alleles, this export uses reasonable assumptions for REF/ALT alleles.</p>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
 
         <footer>
             <p>Built with <a href="https://github.com/captainzonks/Stisty" target="_blank">Stisty</a> |
-               <a href="https://github.com/captainzonks/Stisty/blob/main/GENOME_USAGE.md" target="_blank">Documentation</a></p>
+               <a href="https://github.com/captainzonks/Stisty/blob/main/GENOME_USAGE.md" target="_blank">Documentation</a> |
+               <a href="https://github.com/captainzonks/Stisty/blob/main/PRIVACY.md" target="_blank">Privacy Policy</a></p>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+                Your data never leaves your device. <a href="https://github.com/captainzonks/Stisty/blob/main/stisty-wasm/www/PRIVACY_ARCHITECTURE.md" target="_blank">Verify it yourself →</a>
+            </p>
         </footer>
     </div>
 
