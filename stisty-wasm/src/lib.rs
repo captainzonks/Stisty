@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
-use stisty_lib::genetics::{GenomeAnalyzer, GenomeData};
+use stisty_lib::genetics::{GenomeAnalyzer, GenomeData, VcfGenerator};
 
 // Set up panic hook for better error messages in browser console
 #[wasm_bindgen(start)]
@@ -125,6 +125,31 @@ pub fn chromosome_stats(file_content: &str, chromosome: &str) -> Result<String, 
 
     serde_json::to_string(&result)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize result: {}", e)))
+}
+
+/// Generate VCF (Variant Call Format) output for genome data
+///
+/// # Arguments
+/// * `file_content` - The raw text content from a 23andMe genome file
+/// * `chromosome` - Optional chromosome filter (e.g., "1", "X"). Pass empty string for all chromosomes.
+///
+/// # Returns
+/// String containing the VCF file content
+#[wasm_bindgen]
+pub fn generate_vcf(file_content: &str, chromosome: &str) -> Result<String, JsValue> {
+    let genome = parse_genome_from_string(file_content)
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse genome data: {}", e)))?;
+
+    let generator = VcfGenerator::new(&genome);
+
+    let chr_filter = if chromosome.is_empty() {
+        None
+    } else {
+        Some(chromosome)
+    };
+
+    generator.generate_vcf(chr_filter)
+        .map_err(|e| JsValue::from_str(&format!("Failed to generate VCF: {}", e)))
 }
 
 // Helper function to parse genome data from string

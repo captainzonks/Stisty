@@ -1,8 +1,25 @@
-import init, { analyze_genome, lookup_snp, chromosome_stats } from './stisty_wasm.js';
+import init, { analyze_genome, lookup_snp, chromosome_stats, generate_vcf } from './stisty_wasm.js';
 
-// State
+// ============================================================================
+// PRIVACY NOTICE
+// ============================================================================
+// This application processes ALL data CLIENT-SIDE in your browser.
+//
+// IMPORTANT PRIVACY GUARANTEES:
+// - NO data is ever sent to any server
+// - NO network requests are made with your genetic data
+// - NO analytics or tracking of genetic information
+// - All processing happens locally in WebAssembly
+// - File reading uses browser FileReader API (local only)
+// - Downloads use Blob URLs (local browser memory only)
+//
+// Your genetic data never leaves your device. Period.
+// ============================================================================
+
+// State - All stored in browser memory only, never transmitted
 let genomeData = null;
 let summaryData = null;
+let vcfData = null;
 
 // Initialize WASM module
 async function initWasm() {
@@ -31,7 +48,8 @@ fileInput.addEventListener('change', async (event) => {
         loadingIndicator.classList.remove('hidden');
         resultsSection.classList.add('hidden');
 
-        // Read file content
+        // PRIVACY: Read file content locally using browser FileReader API
+        // This file content NEVER leaves your browser
         const text = await file.text();
         genomeData = text;
 
@@ -263,6 +281,86 @@ chrSelect.addEventListener('change', async () => {
         console.error('Chromosome stats error:', error);
         alert(`Failed to get chromosome statistics: ${error.message}`);
     }
+});
+
+// VCF Export
+const generateVcfButton = document.getElementById('generateVcfButton');
+const downloadVcfButton = document.getElementById('downloadVcfButton');
+const showVcfButton = document.getElementById('showVcfButton');
+const hideVcfButton = document.getElementById('hideVcfButton');
+const vcfChrSelect = document.getElementById('vcfChrSelect');
+const vcfLoading = document.getElementById('vcfLoading');
+const vcfSuccess = document.getElementById('vcfSuccess');
+const vcfDisplay = document.getElementById('vcfDisplay');
+const vcfContent = document.getElementById('vcfContent');
+
+generateVcfButton.addEventListener('click', async () => {
+    if (!genomeData) {
+        alert('Please upload a genome file first');
+        return;
+    }
+
+    try {
+        vcfLoading.classList.remove('hidden');
+        vcfSuccess.classList.add('hidden');
+        vcfDisplay.classList.add('hidden');
+
+        const chromosome = vcfChrSelect.value; // Empty string for all chromosomes
+        vcfData = generate_vcf(genomeData, chromosome);
+
+        vcfLoading.classList.add('hidden');
+        vcfSuccess.classList.remove('hidden');
+    } catch (error) {
+        console.error('VCF generation error:', error);
+        alert(`Failed to generate VCF: ${error.message}`);
+        vcfLoading.classList.add('hidden');
+    }
+});
+
+showVcfButton.addEventListener('click', () => {
+    if (!vcfData) {
+        alert('Please generate VCF first');
+        return;
+    }
+
+    // Display the VCF content
+    vcfContent.textContent = vcfData;
+    vcfDisplay.classList.remove('hidden');
+
+    // Scroll to the display
+    vcfDisplay.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+hideVcfButton.addEventListener('click', () => {
+    vcfDisplay.classList.add('hidden');
+});
+
+downloadVcfButton.addEventListener('click', () => {
+    if (!vcfData) {
+        alert('Please generate VCF first');
+        return;
+    }
+
+    // PRIVACY: Create a Blob URL from local browser memory only
+    // No server upload - file is downloaded directly from your browser
+    const blob = new Blob([vcfData], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link and trigger download
+    const a = document.createElement('a');
+    a.href = url;
+
+    // Generate filename based on chromosome selection
+    const chr = vcfChrSelect.value;
+    const chrSuffix = chr ? `_chr${chr}` : '_all';
+    a.download = `genome${chrSuffix}.vcf`;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
 });
 
 // Initialize
