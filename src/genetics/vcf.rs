@@ -62,6 +62,7 @@ impl<'a> VcfGenerator<'a> {
 
         // Source information
         output.push_str("##source=Stisty-23andMe-Converter\n");
+        output.push_str("##sourceNote=Converted from 23andMe raw data. Genotypes are UNPHASED. REF/ALT alleles inferred from genotype (not reference genome). No population allele frequencies available.\n");
 
         // Reference genome
         let reference = &self.genome.metadata.build;
@@ -80,6 +81,7 @@ impl<'a> VcfGenerator<'a> {
 
         // INFO field definitions
         output.push_str("##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of samples with data\">\n");
+        output.push_str("##INFO=<ID=PHASED,Number=0,Type=Flag,Description=\"Indicates if genotype is phased\">\n");
 
         // FORMAT field definitions
         output.push_str("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
@@ -102,6 +104,8 @@ impl<'a> VcfGenerator<'a> {
         if ref_allele == "." || genotype_string == "./." {
             return Ok(());
         }
+
+        // Note: 23andMe provides unphased genotypes (no haplotype information)
 
         // CHROM
         output.push_str(&snp.chromosome);

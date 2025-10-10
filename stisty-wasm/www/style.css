@@ -542,6 +542,8 @@ footer a:hover {
     font-size: 0.875rem;
     line-height: 1.5;
     white-space: pre;
+    tab-size: 8;
+    -moz-tab-size: 8;
 }
 
 .vcf-content::-webkit-scrollbar {

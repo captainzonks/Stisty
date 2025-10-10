@@ -17,6 +17,7 @@ console_error_panic_hook = "0.1.7"
 dlmalloc = { version = "0.2.11", features = ["global"] }
 anyhow = "1.0.100"
 getrandom = { version = "0.3.3", features = ["wasm_js"] }
+chrono = { version = "0.4.42", features = ["wasmbind"] }
 
 # Use the parent crate's genetics module with no default features (disables CLI deps)
 stisty_lib = { path = "..", package = "Stisty", default-features = false }

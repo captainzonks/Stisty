@@ -1,5 +1,3 @@
-import init, { analyze_genome, lookup_snp, chromosome_stats, generate_vcf } from './stisty_wasm.js';
-
 // ============================================================================
 // PRIVACY NOTICE
 // ============================================================================
@@ -21,10 +19,35 @@ let genomeData = null;
 let summaryData = null;
 let vcfData = null;
 
+// Replace static imports with runtime binding so we can detect missing exports
+let analyze_genome, lookup_snp, chromosome_stats, generate_vcf;
+let wasmInitFn = null;
+
 // Initialize WASM module
 async function initWasm() {
     try {
-        await init();
+        const mod = await import('./stisty_wasm.js');
+        // Show what's actually exported (helps debug remotely-hosted modules)
+        console.log('WASM exports:', Object.keys(mod));
+
+        // Assign functions if present (try both snake_case and camelCase variants)
+        analyze_genome = mod.analyze_genome || mod.analyzeGenome || null;
+        lookup_snp = mod.lookup_snp || mod.lookupSnp || null;
+        chromosome_stats = mod.chromosome_stats || mod.chromosomeStats || null;
+        generate_vcf = mod.generate_vcf || mod.generateVcf || null;
+
+        if (!generate_vcf) {
+            console.warn('generate_vcf is not exported by stisty_wasm.js — VCF export will be unavailable');
+        }
+
+        // Call initialization: use default export which is __wbg_init (the async loader)
+        // Do NOT use mod.init() - that's a different function that gets called after WASM loads
+        if (typeof mod.default === 'function') {
+            await mod.default();
+        } else {
+            throw new Error('No default init function found in WASM module');
+        }
+
         console.log('✅ WASM module initialized');
     } catch (error) {
         console.error('❌ Failed to initialize WASM:', error);
@@ -291,6 +314,7 @@ const hideVcfButton = document.getElementById('hideVcfButton');
 const vcfChrSelect = document.getElementById('vcfChrSelect');
 const vcfLoading = document.getElementById('vcfLoading');
 const vcfSuccess = document.getElementById('vcfSuccess');
+const vcfStats = document.getElementById('vcfStats');
 const vcfDisplay = document.getElementById('vcfDisplay');
 const vcfContent = document.getElementById('vcfContent');
 
@@ -306,7 +330,27 @@ generateVcfButton.addEventListener('click', async () => {
         vcfDisplay.classList.add('hidden');
 
         const chromosome = vcfChrSelect.value; // Empty string for all chromosomes
+
+        // Get estimated SNP count for progress messaging
+        const chrText = chromosome ? ` chromosome ${chromosome}` : ' all chromosomes';
+        const loadingText = vcfLoading.querySelector('p');
+        const estimatedSnps = chromosome ?
+            (summaryData?.chromosome_counts?.find(([chr]) => chr === chromosome)?.[1] || 'many') :
+            summaryData?.total_snps || 'many';
+        loadingText.textContent = `Generating VCF for${chrText}... (${estimatedSnps.toLocaleString()} SNPs)`;
+
+        // Use setTimeout to allow the UI to update before blocking WASM call
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const startTime = performance.now();
         vcfData = generate_vcf(genomeData, chromosome);
+        const duration = ((performance.now() - startTime) / 1000).toFixed(1);
+
+        console.log(`✅ VCF generated in ${duration}s`);
+
+        // Update success message with stats
+        const variantCount = vcfData.split('\n').filter(line => !line.startsWith('#') && line.trim().length > 0).length;
+        vcfStats.textContent = `(${variantCount.toLocaleString()} variants in ${duration}s)`;
 
         vcfLoading.classList.add('hidden');
         vcfSuccess.classList.remove('hidden');
@@ -324,13 +368,69 @@ showVcfButton.addEventListener('click', () => {
         return;
     }
 
-    // Display the VCF content
-    vcfContent.textContent = vcfData;
+    // Format VCF for display with aligned columns
+    const formattedVcf = formatVcfForDisplay(vcfData);
+    vcfContent.textContent = formattedVcf;
     vcfDisplay.classList.remove('hidden');
 
     // Scroll to the display
     vcfDisplay.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
+
+// Format VCF data with proper column alignment for display
+function formatVcfForDisplay(vcfText) {
+    const lines = vcfText.split('\n');
+    const formattedLines = [];
+
+    // Find where data lines start (after header)
+    let dataStartIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('#CHROM')) {
+            dataStartIndex = i;
+            break;
+        }
+    }
+
+    if (dataStartIndex === -1) {
+        // No data header found, return as-is
+        return vcfText;
+    }
+
+    // Keep all header lines as-is
+    for (let i = 0; i < dataStartIndex; i++) {
+        formattedLines.push(lines[i]);
+    }
+
+    // Process data lines (header + variants)
+    const dataLines = lines.slice(dataStartIndex).filter(line => line.trim().length > 0);
+
+    // Calculate max width for each column
+    const columnWidths = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 10 VCF columns
+
+    dataLines.forEach(line => {
+        const fields = line.split('\t');
+        fields.forEach((field, i) => {
+            if (i < columnWidths.length) {
+                columnWidths[i] = Math.max(columnWidths[i], field.length);
+            }
+        });
+    });
+
+    // Format each line with padding
+    dataLines.forEach(line => {
+        const fields = line.split('\t');
+        const paddedFields = fields.map((field, i) => {
+            if (i < columnWidths.length - 1) {
+                // Pad all columns except the last one
+                return field.padEnd(columnWidths[i] + 2, ' ');
+            }
+            return field; // Last column doesn't need padding
+        });
+        formattedLines.push(paddedFields.join(''));
+    });
+
+    return formattedLines.join('\n');
+}
 
 hideVcfButton.addEventListener('click', () => {
     vcfDisplay.classList.add('hidden');
