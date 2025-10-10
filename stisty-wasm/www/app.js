@@ -337,7 +337,7 @@ generateVcfButton.addEventListener('click', async () => {
         const estimatedSnps = chromosome ?
             (summaryData?.chromosome_counts?.find(([chr]) => chr === chromosome)?.[1] || 'many') :
             summaryData?.total_snps || 'many';
-        loadingText.textContent = `Generating VCF for${chrText}... (${estimatedSnps.toLocaleString()} SNPs)`;
+        loadingText.textContent = `Generating VCF for${chrText}... (${typeof estimatedSnps === 'number' ? estimatedSnps.toLocaleString() : estimatedSnps} SNPs)`;
 
         // Use setTimeout to allow the UI to update before blocking WASM call
         await new Promise(resolve => setTimeout(resolve, 50));
