@@ -337,7 +337,8 @@ generateVcfButton.addEventListener('click', async () => {
         const estimatedSnps = chromosome ?
             (summaryData?.chromosome_counts?.find(([chr]) => chr === chromosome)?.[1] || 'many') :
             summaryData?.total_snps || 'many';
-        loadingText.textContent = `Generating VCF for${chrText}... (${typeof estimatedSnps === 'number' ? estimatedSnps.toLocaleString() : estimatedSnps} SNPs)`;
+        const snpsText = typeof estimatedSnps === 'number' ? estimatedSnps.toLocaleString() : estimatedSnps;
+        loadingText.textContent = `Generating VCF for${chrText}... (${snpsText} SNPs)`;
 
         // Use setTimeout to allow the UI to update before blocking WASM call
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -379,6 +380,9 @@ showVcfButton.addEventListener('click', () => {
 
 // Format VCF data with proper column alignment for display
 function formatVcfForDisplay(vcfText) {
+    const VCF_COLUMN_COUNT = 10;
+    const COLUMN_PADDING = 2;
+
     const lines = vcfText.split('\n');
     const formattedLines = [];
 
@@ -405,7 +409,7 @@ function formatVcfForDisplay(vcfText) {
     const dataLines = lines.slice(dataStartIndex).filter(line => line.trim().length > 0);
 
     // Calculate max width for each column
-    const columnWidths = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // 10 VCF columns
+    const columnWidths = new Array(VCF_COLUMN_COUNT).fill(0);
 
     dataLines.forEach(line => {
         const fields = line.split('\t');
@@ -422,7 +426,7 @@ function formatVcfForDisplay(vcfText) {
         const paddedFields = fields.map((field, i) => {
             if (i < columnWidths.length - 1) {
                 // Pad all columns except the last one
-                return field.padEnd(columnWidths[i] + 2, ' ');
+                return field.padEnd(columnWidths[i] + COLUMN_PADDING, ' ');
             }
             return field; // Last column doesn't need padding
         });
