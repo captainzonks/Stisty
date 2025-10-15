@@ -106,10 +106,31 @@ impl<'a> VcfGenerator<'a> {
         Ok(vcf_files)
     }
 
+    /// Compress VCF content to BGZF format (CLI feature only)
+    ///
+    /// Michigan Imputation Server requires bgzip-compressed files (.vcf.gz)
+    /// BGZF (Blocked GNU Zip Format) enables random access and tabix indexing
+    ///
+    /// This uses the bgzip crate which provides true BGZF compression with
+    /// 64KB blocks, enabling efficient random access via tabix indexing.
+    #[cfg(feature = "cli")]
+    pub fn compress_vcf_bgzf(vcf_content: &str) -> Result<Vec<u8>> {
+        use bgzip::BGZFWriter;
+
+        let mut output = Vec::new();
+        let mut writer = BGZFWriter::new(&mut output, bgzip::Compression::default());
+        writer.write_all(vcf_content.as_bytes())?;
+        writer.close()?;
+
+        Ok(output)
+    }
+
     /// Compress VCF content to bgzip/gzip format (CLI feature only)
     ///
     /// Michigan Imputation Server requires bgzip-compressed files (.vcf.gz)
     /// This uses gzip compression which is compatible with bgzip format
+    ///
+    /// Note: For true BGZF compression with tabix support, use compress_vcf_bgzf()
     #[cfg(feature = "cli")]
     pub fn compress_vcf(vcf_content: &str) -> Result<Vec<u8>> {
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
@@ -117,10 +138,32 @@ impl<'a> VcfGenerator<'a> {
         Ok(encoder.finish()?)
     }
 
+    /// Generate and compress multiple VCF files for chromosomes 1-22 with BGZF (CLI feature only)
+    ///
+    /// Returns a HashMap mapping chromosome names to BGZF-compressed VCF data
+    /// Ready for Michigan Imputation Server upload and tabix indexing
+    ///
+    /// # Returns
+    /// HashMap where keys are chromosome names ("1" through "22") and values are BGZF-compressed VCF data
+    #[cfg(feature = "cli")]
+    pub fn generate_batch_vcf_bgzf(&self) -> Result<HashMap<String, Vec<u8>>> {
+        let vcf_files = self.generate_batch_vcf()?;
+        let mut compressed_files = HashMap::new();
+
+        for (chr, vcf_content) in vcf_files {
+            let compressed = Self::compress_vcf_bgzf(&vcf_content)?;
+            compressed_files.insert(chr, compressed);
+        }
+
+        Ok(compressed_files)
+    }
+
     /// Generate and compress multiple VCF files for chromosomes 1-22 (CLI feature only)
     ///
     /// Returns a HashMap mapping chromosome names to compressed VCF data
     /// Ready for Michigan Imputation Server upload
+    ///
+    /// Note: For true BGZF compression with tabix support, use generate_batch_vcf_bgzf()
     ///
     /// # Returns
     /// HashMap where keys are chromosome names ("1" through "22") and values are gzipped VCF data
@@ -135,6 +178,54 @@ impl<'a> VcfGenerator<'a> {
         }
 
         Ok(compressed_files)
+    }
+
+    /// Write batch VCF files directly to disk with BGZF compression (CLI feature only)
+    ///
+    /// Generates VCF files for chromosomes 1-22 and writes them as BGZF-compressed files
+    /// to the specified output directory. Files are named: B.{sample_name}_merged_6samples_chr{#}.vcf.gz
+    ///
+    /// # Arguments
+    /// * `output_dir` - Directory path where VCF files will be written
+    /// * `sample_name` - Name to use in the output filenames (e.g., "mygenome")
+    ///
+    /// # Returns
+    /// Number of files written
+    ///
+    /// # Example
+    /// ```ignore
+    /// let vcf_gen = VcfGenerator::with_reference(&genome, &ref_db, &ref_index);
+    /// let count = vcf_gen.write_batch_vcf_bgzf("./output", "mygenome")?;
+    /// println!("Wrote {} VCF files", count);
+    /// ```
+    #[cfg(feature = "cli")]
+    pub fn write_batch_vcf_bgzf(&self, output_dir: &str, sample_name: &str) -> Result<usize> {
+        use bgzip::BGZFWriter;
+        use std::fs;
+        use std::path::Path;
+
+        // Create output directory if it doesn't exist
+        fs::create_dir_all(output_dir)?;
+
+        let vcf_files = self.generate_batch_vcf()?;
+        let mut count = 0;
+
+        for (chr, vcf_content) in vcf_files {
+            // Filename format: B.{sample_name}_merged_6samples_chr{#}.vcf.gz
+            let filename = format!("B.{}_merged_6samples_chr{}.vcf.gz", sample_name, chr);
+            let output_path = Path::new(output_dir).join(filename);
+
+            // Write with BGZF compression
+            let file = fs::File::create(&output_path)?;
+            let mut writer = BGZFWriter::new(file, bgzip::Compression::default());
+            writer.write_all(vcf_content.as_bytes())?;
+            writer.close()?;
+
+            count += 1;
+            println!("✅ Wrote: {}", output_path.display());
+        }
+
+        Ok(count)
     }
 
     /// Write VCF header lines
@@ -544,5 +635,33 @@ mod tests {
             .collect();
 
         assert_eq!(positions, vec![100, 200, 300]);
+    }
+
+    #[test]
+    #[cfg(feature = "cli")]
+    fn test_bgzf_compression() {
+        let test_vcf = r#"##fileformat=VCFv4.2
+##fileDate=20251015
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample1
+1	100	rs1	A	T	.	PASS	NS=1	GT	0/1
+"#;
+
+        // Test BGZF compression
+        let compressed = VcfGenerator::compress_vcf_bgzf(test_vcf).unwrap();
+
+        // BGZF adds overhead for block structure, so small files may be larger
+        // For larger files (like real VCF data), compression is very effective
+        assert!(!compressed.is_empty());
+
+        // BGZF files start with the gzip magic number
+        assert_eq!(compressed[0], 0x1f);
+        assert_eq!(compressed[1], 0x8b);
+
+        println!("✅ BGZF compression test passed!");
+        println!("   Original: {} bytes", test_vcf.len());
+        println!("   Compressed: {} bytes", compressed.len());
+        println!("   Ratio: {:.1}%", (compressed.len() as f64 / test_vcf.len() as f64) * 100.0);
+        println!("   Note: BGZF adds block structure overhead, so small files may be larger");
+        println!("         Real VCF files with thousands of SNPs compress very efficiently");
     }
 }

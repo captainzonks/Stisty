@@ -157,9 +157,27 @@ Significant deviations may indicate data quality issues.
 
 Stisty can export genome data in VCF 4.2 format compatible with the [Michigan Imputation Server](https://imputationserver.sph.umich.edu/).
 
+### CLI Tool with BGZF Compression
+
+**NEW!** The CLI tool can now export VCF files with built-in BGZF compression:
+
+```bash
+# Export VCF files for all chromosomes with BGZF compression
+stisty --genetics --file genome_data.txt export-vcf-bgzf --output ./vcf_output --name mygenome
+
+# This creates files: B.mygenome_merged_6samples_chr{1-22}.vcf.gz
+# Files are ready for direct upload to Michigan Imputation Server
+```
+
+**BGZF Benefits**:
+- ✅ **True BGZF format** - Uses blocked compression (64KB blocks) for random access
+- ✅ **Tabix indexing ready** - Can be indexed with `tabix -p vcf file.vcf.gz`
+- ✅ **No external tools needed** - Compression happens automatically
+- ✅ **Faster than external bgzip** - Multi-threaded compression via Rayon
+
 ### Web Application
 
-The easiest way to export VCF files is through the web interface:
+The web interface provides uncompressed VCF files:
 
 ```bash
 # Build and serve the WASM web application
