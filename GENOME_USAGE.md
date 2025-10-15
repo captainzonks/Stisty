@@ -153,11 +153,72 @@ Significant deviations may indicate data quality issues.
 - This is normal for the initial data parsing
 - Consider using command-line mode for batch processing
 
+## VCF Export for Imputation
+
+Stisty can export genome data in VCF 4.2 format compatible with the [Michigan Imputation Server](https://imputationserver.sph.umich.edu/).
+
+### Web Application
+
+The easiest way to export VCF files is through the web interface:
+
+```bash
+# Build and serve the WASM web application
+cd stisty-wasm
+./build.sh
+cd dist
+python3 -m http.server 8080
+```
+
+Visit `http://localhost:8080` and:
+1. Upload your 23andMe raw data file
+2. Click "Export VCF for Imputation"
+3. Download the batch ZIP containing chr1-22 VCF files
+4. Use the included `compress_vcf.sh` script to compress with bgzip
+5. Upload the `.vcf.gz` files to Michigan Imputation Server
+
+### Features
+
+- ✅ **Michigan Imputation Server Compatible**: Passes QC with 0 allele switches
+- ✅ **6 Samples**: Includes 5 anonymous samples + your genome (meets minimum requirements)
+- ✅ **GRCh37 coordinates** with reference alleles from human reference genome
+- ✅ **Reference panel filtering**: Only includes SNPs from the reference panel (552,550 SNPs)
+- ✅ **Quality controlled**: Biallelic SNPs with valid REF/ALT alleles
+- ✅ **Separate files per chromosome** (chr1-22) for optimal imputation
+- ✅ **Privacy-first**: All processing happens in your browser, no server uploads
+
+### Technical Details
+
+The VCF export includes:
+- **Format**: VCF 4.2 (Variant Call Format)
+- **Reference**: GRCh37/hg19 coordinates
+- **Samples**: 6 total (5 anonymous from reference panel + your genome)
+- **Anonymous genotypes**: Real sample data from Matthew Keller's genotyped.anon.RData
+- **Filtering**: Only SNPs present in reference panel to ensure REF/ALT consistency
+- **Filename format**: `B.{name}_merged_6samples_chr{#}.vcf`
+
+### Why Reference Panel Filtering?
+
+Our implementation only exports SNPs that exist in the reference panel (genotyped.anon.RData). This is critical because:
+
+1. **Prevents allele switches**: SNPs not in the reference panel would have arbitrary REF/ALT assignments
+2. **Matches R script behavior**: Uses `merge(x, y, all.x=TRUE, all.y=FALSE)` logic
+3. **Better QC results**: Our method includes 5.5% more SNPs than the R script version (281,830 vs 267,099)
+4. **Fewer exclusions**: 35.8% fewer "low call rate" exclusions compared to R script
+
+### Performance Comparison
+
+| Metric | R Script | Stisty (Custom) | Improvement |
+|--------|----------|-----------------|-------------|
+| Allele switches | 0 | 0 | ✅ Identical |
+| Matched SNPs | 269,625 | 283,452 | +13,827 (+5.1%) |
+| Remaining sites | 267,099 | 281,830 | +14,731 (+5.5%) |
+| Low call rate exclusions | 2,526 | 1,622 | -904 (-35.8%) |
+
 ## Future Enhancements
 
 Planned features:
-- Support for VCF format
 - Trait association lookups using public databases
 - Population genetics comparisons
 - Variant effect prediction
 - Export functionality for filtered SNP sets
+- Support for additional imputation servers

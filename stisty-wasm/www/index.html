@@ -10,7 +10,7 @@
     <div class="container">
         <header>
             <h1>🧬 Stisty Genome Analyzer</h1>
-            <p class="subtitle">Privacy-First Genetic Data Analysis</p>
+            <p class="subtitle">Privacy-First Genetic Data Analysis + Michigan Imputation Server Compatible VCF Export</p>
         </header>
 
         <div class="privacy-notice">
@@ -135,6 +135,9 @@
                         <p class="help-text">Generate a standard VCF (Variant Call Format) file from your genome data.</p>
 
                         <div class="vcf-options">
+                            <label for="vcfSampleName">Sample Name (for filenames):</label>
+                            <input type="text" id="vcfSampleName" placeholder="mygenome" maxlength="50" value="mygenome" />
+
                             <label for="vcfChrSelect">Export Chromosome:</label>
                             <select id="vcfChrSelect">
                                 <option value="">All Chromosomes</option>
@@ -177,10 +180,10 @@
                             <p>✅ VCF file generated successfully! <span id="vcfStats"></span></p>
                             <div class="vcf-actions">
                                 <button id="showVcfButton" class="action-button">View VCF</button>
-                                <button id="downloadVcfButton" class="download-button">Download VCF File</button>
+                                <button id="downloadVcfButton" class="download-button">Download Single Chromosome</button>
+                                <button id="downloadBatchVcfButton" class="download-button batch-button">Download Chr1-22 Batch (ZIP)</button>
                             </div>
                         </div>
-
                         <div id="vcfDisplay" class="vcf-display hidden">
                             <div class="vcf-header">
                                 <h4>VCF Output</h4>
@@ -190,15 +193,21 @@
                         </div>
 
                         <div class="info-box">
-                            <h4>About VCF Format</h4>
-                            <p>VCF (Variant Call Format) is a standard file format for storing gene sequence variations. The generated file includes:</p>
+                            <h4>Michigan Imputation Server Compatible</h4>
+                            <p>This VCF export is specifically designed for the <strong>Michigan Imputation Server 2</strong>. Features:</p>
                             <ul>
-                                <li>Header with metadata and format version</li>
-                                <li>Chromosome, position, and rsID for each variant</li>
-                                <li>Reference and alternate alleles</li>
-                                <li>Genotype information</li>
+                                <li>✅ <strong>GRCh37 coordinates</strong> with reference alleles from human reference genome</li>
+                                <li>✅ <strong>5 samples</strong> (4 anonymous + your genome) to meet minimum requirements</li>
+                                <li>✅ <strong>Separate files per chromosome</strong> (chr1-22) for optimal imputation</li>
+                                <li>✅ <strong>Quality controlled</strong> - only biallelic SNPs with valid REF/ALT alleles</li>
+                                <li>✅ <strong>Sorted by position</strong> and filtered for monomorphic sites</li>
+                                <li>✅ <strong>Anonymous sample genotypes</strong> from population reference data</li>
                             </ul>
-                            <p><strong>Note:</strong> Since 23andMe data doesn't include reference alleles, this export uses reasonable assumptions for REF/ALT alleles.</p>
+                            <p><strong>BGZIP Compression Required:</strong> After downloading, compress files with <code>bgzip</code> before uploading to the imputation server.</p>
+                            <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+                                Install bgzip: <code>sudo apt install tabix</code> (Linux) or <code>brew install htslib</code> (Mac)<br>
+                                Then run: <code>for f in *.vcf; do bgzip "$f"; done</code>
+                            </p>
                         </div>
                     </div>
                 </div>

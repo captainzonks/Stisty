@@ -1,5 +1,6 @@
 # Rust
 /target/
+**/target/
 **/*.rs.bk
 *.pdb
 
@@ -7,6 +8,10 @@
 # Cargo.lock is tracked for binary projects (like this one)
 # Uncomment the line below only if this becomes a library:
 # Cargo.lock
+
+# WASM build artifacts
+**/pkg/
+**/dist/
 
 # Application logs
 logs/

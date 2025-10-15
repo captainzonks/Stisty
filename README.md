@@ -27,6 +27,16 @@ Stisty provides both a fast CLI for statistical analysis and a privacy-first bro
 - **Chi-Squared Goodness of Fit** - Test observed vs. expected frequencies
 - **Chi-Squared Test of Independence** - Test association between categorical variables
 
+### Genome Analysis
+- **23andMe Data Import** - Parse and analyze 23andMe raw data files
+- **VCF Export** - Generate Michigan Imputation Server compatible VCF files
+- **Reference Panel Filtering** - 552,550 SNPs with anonymous sample genotypes
+- **Quality Controlled Output** - 0 allele switches, passes imputation QC
+- **Privacy-First Processing** - All analysis happens in your browser
+- **SNP Lookup & Statistics** - Heterozygosity, Ts/Tv ratio, chromosome stats
+
+[See detailed genome usage guide →](GENOME_USAGE.md)
+
 ### Additional Features
 - Interactive menu mode
 - CSV data import and validation

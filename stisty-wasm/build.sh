@@ -11,7 +11,7 @@ fi
 
 # Build WASM package
 echo "🦀 Compiling Rust to WebAssembly..."
-wasm-pack build --target web --out-dir pkg --release
+RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target web --out-dir pkg --release
 
 # Copy files to dist directory
 echo "📁 Creating distribution directory..."
@@ -22,6 +22,9 @@ mkdir -p dist
 cp www/index.html dist/
 cp www/style.css dist/
 cp www/app.js dist/
+
+# Copy reference database
+cp www/reference_db.bin.br dist/
 
 # Copy WASM files
 cp pkg/stisty_wasm.js dist/

@@ -597,6 +597,16 @@ footer a:hover {
     color: #1e40af;
 }
 
+.info-box code {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.875em;
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 1rem;

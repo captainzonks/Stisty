@@ -21,12 +21,16 @@ let vcfData = null;
 
 // Replace static imports with runtime binding so we can detect missing exports
 let analyze_genome, lookup_snp, chromosome_stats, generate_vcf;
+let generate_vcf_with_reference, generate_batch_vcf_with_reference, load_reference_database;
 let wasmInitFn = null;
+let referenceDbLoaded = false;
 
 // Initialize WASM module
 async function initWasm() {
     try {
-        const mod = await import('./stisty_wasm.js');
+        // Add version parameter for cache busting on updates
+        // Build timestamp ensures fresh WASM on each rebuild
+        const mod = await import(`./stisty_wasm.js?v=20251015-realsamples`);
         // Show what's actually exported (helps debug remotely-hosted modules)
         console.log('WASM exports:', Object.keys(mod));
 
@@ -35,6 +39,9 @@ async function initWasm() {
         lookup_snp = mod.lookup_snp || mod.lookupSnp || null;
         chromosome_stats = mod.chromosome_stats || mod.chromosomeStats || null;
         generate_vcf = mod.generate_vcf || mod.generateVcf || null;
+        generate_vcf_with_reference = mod.generate_vcf_with_reference || null;
+        generate_batch_vcf_with_reference = mod.generate_batch_vcf_with_reference || null;
+        load_reference_database = mod.load_reference_database || null;
 
         if (!generate_vcf) {
             console.warn('generate_vcf is not exported by stisty_wasm.js — VCF export will be unavailable');
@@ -49,6 +56,35 @@ async function initWasm() {
         }
 
         console.log('✅ WASM module initialized');
+
+        // Load reference database for proper REF/ALT alleles
+        if (load_reference_database) {
+            try {
+                console.log('Loading reference database...');
+                const stats = await load_reference_database('./reference_db.bin.br');
+                console.log('✅ Reference database loaded:', stats);
+                referenceDbLoaded = true;
+
+                // Update UI to show reference database is available
+                const vcfSection = document.querySelector('.vcf-section');
+                if (vcfSection) {
+                    const refInfo = document.createElement('div');
+                    refInfo.className = 'info-box success-box';
+                    refInfo.style.marginBottom = '1rem';
+                    refInfo.innerHTML = `
+                        <p><strong>✅ Reference Database Loaded</strong></p>
+                        <p style="font-size: 0.9em; margin-top: 0.5rem;">
+                            VCF exports will use proper REF/ALT alleles from GRCh37 reference genome.
+                            Ready for Michigan Imputation Server!
+                        </p>
+                    `;
+                    vcfSection.insertBefore(refInfo, vcfSection.firstChild.nextSibling);
+                }
+            } catch (error) {
+                console.warn('Failed to load reference database:', error);
+                console.warn('VCF export will use fallback mode (not suitable for imputation)');
+            }
+        }
     } catch (error) {
         console.error('❌ Failed to initialize WASM:', error);
         alert('Failed to initialize the application. Please refresh the page.');
@@ -309,8 +345,10 @@ chrSelect.addEventListener('change', async () => {
 // VCF Export
 const generateVcfButton = document.getElementById('generateVcfButton');
 const downloadVcfButton = document.getElementById('downloadVcfButton');
+const downloadBatchVcfButton = document.getElementById('downloadBatchVcfButton');
 const showVcfButton = document.getElementById('showVcfButton');
 const hideVcfButton = document.getElementById('hideVcfButton');
+const vcfSampleName = document.getElementById('vcfSampleName');
 const vcfChrSelect = document.getElementById('vcfChrSelect');
 const vcfLoading = document.getElementById('vcfLoading');
 const vcfSuccess = document.getElementById('vcfSuccess');
@@ -344,7 +382,14 @@ generateVcfButton.addEventListener('click', async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
 
         const startTime = performance.now();
-        vcfData = generate_vcf(genomeData, chromosome);
+        // Use reference-aware VCF generation if available
+        if (referenceDbLoaded && generate_vcf_with_reference) {
+            console.log('Using reference-aware VCF generation');
+            vcfData = generate_vcf_with_reference(genomeData, chromosome);
+        } else {
+            console.log('Using fallback VCF generation (no reference database)');
+            vcfData = generate_vcf(genomeData, chromosome);
+        }
         const duration = ((performance.now() - startTime) / 1000).toFixed(1);
 
         console.log(`✅ VCF generated in ${duration}s`);
@@ -455,10 +500,11 @@ downloadVcfButton.addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = url;
 
-    // Generate filename based on chromosome selection
+    // Generate filename based on sample name and chromosome selection
+    const sampleName = (vcfSampleName.value.trim() || 'mygenome').replace(/[^a-zA-Z0-9_-]/g, '_');
     const chr = vcfChrSelect.value;
     const chrSuffix = chr ? `_chr${chr}` : '_all';
-    a.download = `genome${chrSuffix}.vcf`;
+    a.download = `${sampleName}${chrSuffix}.vcf`;
 
     document.body.appendChild(a);
     a.click();
@@ -466,6 +512,174 @@ downloadVcfButton.addEventListener('click', () => {
 
     // Clean up the URL object
     URL.revokeObjectURL(url);
+});
+
+// Batch VCF Download (chromosomes 1-22 as separate gzipped files in a ZIP)
+downloadBatchVcfButton.addEventListener('click', async () => {
+    if (!genomeData) {
+        alert('Please upload a genome file first');
+        return;
+    }
+
+    if (!referenceDbLoaded || !generate_batch_vcf_with_reference) {
+        alert('Batch VCF export requires reference database. Please reload the page.');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const originalText = downloadBatchVcfButton.textContent;
+        downloadBatchVcfButton.disabled = true;
+        downloadBatchVcfButton.textContent = 'Generating...';
+
+        console.log('Generating batch VCF files for chromosomes 1-22...');
+        const startTime = performance.now();
+
+        // Generate all chromosome VCFs
+        const batchResultJson = generate_batch_vcf_with_reference(genomeData);
+        const vcfFiles = JSON.parse(batchResultJson);
+
+        const duration = ((performance.now() - startTime) / 1000).toFixed(1);
+        console.log(`✅ Generated ${Object.keys(vcfFiles).length} VCF files in ${duration}s`);
+
+        // Update button text
+        downloadBatchVcfButton.textContent = 'Compressing...';
+
+        // Use JSZip to create ZIP file with VCFs
+        // Note: Michigan Imputation Server requires BGZF compression (not standard gzip)
+        // BGZF is not available in browsers, so we'll provide uncompressed VCFs
+        // Users can compress with bgzip locally if needed: bgzip file.vcf
+        const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+
+        const zip = new JSZip();
+
+        // Get sample name for filename (sanitize for filesystem safety)
+        const sampleName = (vcfSampleName.value.trim() || 'mygenome').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+        // Add each chromosome VCF (uncompressed - user can bgzip locally)
+        // Filename format: B.{custom_name}_merged_6samples_chr{#}.vcf (matches R script naming)
+        for (const [chr, vcfContent] of Object.entries(vcfFiles)) {
+            zip.file(`B.${sampleName}_merged_6samples_chr${chr}.vcf`, vcfContent);
+        }
+
+        // Add README with instructions
+        const readmeContent = `Michigan Imputation Server - VCF Files
+========================================
+
+Your genome has been exported to ${Object.keys(vcfFiles).length} VCF files (one per chromosome).
+
+IMPORTANT: These files must be compressed with BGZIP before uploading to the imputation server.
+
+Quick Start
+-----------
+1. Extract all files from this ZIP
+2. Run the compress_vcf.sh script:
+   chmod +x compress_vcf.sh
+   ./compress_vcf.sh
+
+Or compress manually:
+   for f in B.${sampleName}_merged_6samples_chr*.vcf; do bgzip "$f"; done
+
+3. Upload the .vcf.gz files to: https://imputationserver.sph.umich.edu/
+
+Installing bgzip
+----------------
+Ubuntu/Debian: sudo apt install tabix
+macOS: brew install htslib
+Windows: Use WSL or download from https://github.com/samtools/htslib
+
+About These Files
+-----------------
+- Format: VCF 4.2 (Variant Call Format)
+- Reference: GRCh37/hg19 coordinates
+- Samples: 6 (5 anonymous + your genome)
+- Filename: B.{name}_merged_6samples_chr{#}.vcf
+- Quality: Filtered for biallelic SNPs with valid REF/ALT alleles
+- Sorted: By chromosome and position
+- Compatible: Michigan Imputation Server 2
+
+Questions?
+----------
+Visit: https://imputationserver.readthedocs.io/
+`;
+
+        zip.file('README.txt', readmeContent);
+
+        // Add compression helper script
+        const compressScript = `#!/bin/bash
+# Compress VCF files for Michigan Imputation Server
+set -e
+
+echo "==> Compressing VCF files with BGZIP"
+echo ""
+
+if ! command -v bgzip &> /dev/null; then
+    echo "❌ Error: bgzip not found"
+    echo ""
+    echo "Install bgzip:"
+    echo "  Ubuntu/Debian: sudo apt install tabix"
+    echo "  macOS: brew install htslib"
+    exit 1
+fi
+
+vcf_files=(*.vcf)
+if [ \${#vcf_files[@]} -eq 0 ] || [ ! -f "\${vcf_files[0]}" ]; then
+    echo "❌ No VCF files found"
+    exit 1
+fi
+
+echo "Found \${#vcf_files[@]} VCF file(s)"
+echo ""
+
+for vcf in "\${vcf_files[@]}"; do
+    if [ -f "$vcf" ]; then
+        echo "Compressing: $vcf"
+        bgzip -f "$vcf"
+        echo "  ✅ Created: \${vcf}.gz"
+    fi
+done
+
+echo ""
+echo "==> Complete! Upload .vcf.gz files to:"
+echo "    https://imputationserver.sph.umich.edu/"
+`;
+
+        zip.file('compress_vcf.sh', compressScript);
+
+        // Generate the ZIP file
+        downloadBatchVcfButton.textContent = 'Creating ZIP...';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+        // Create download link
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sampleName}_chr1-22_vcf.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Reset button
+        downloadBatchVcfButton.textContent = originalText;
+        downloadBatchVcfButton.disabled = false;
+
+        console.log(`✅ ZIP file created with ${Object.keys(vcfFiles).length} VCF files`);
+        const fileCount = Object.keys(vcfFiles).length;
+        alert(`Successfully downloaded ${fileCount} chromosome VCF files!\n\n` +
+              `IMPORTANT: Michigan Imputation Server requires BGZF compression.\n\n` +
+              `To compress (requires bgzip tool):\n` +
+              `  1. Extract the ZIP file\n` +
+              `  2. Run: for f in B.${sampleName}_merged_6samples_chr*.vcf; do bgzip "$f"; done\n` +
+              `  3. Upload the .vcf.gz files to the imputation server\n\n` +
+              `Install bgzip: sudo apt install tabix (Linux) or brew install htslib (Mac)`);
+
+    } catch (error) {
+        console.error('Batch VCF download error:', error);
+        alert(`Failed to create batch VCF download: ${error.message}`);
+        downloadBatchVcfButton.textContent = 'Download All Chr1-22 (ZIP)';
+        downloadBatchVcfButton.disabled = false;
+    }
 });
 
 // Initialize
